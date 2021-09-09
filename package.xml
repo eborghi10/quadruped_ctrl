@@ -25,5 +25,7 @@
   <exec_depend>message_runtime</exec_depend>
   <exec_depend>rospy</exec_depend>
   <exec_depend>std_msgs</exec_depend>
+  <exec_depend>whole_body_state_msgs</exec_depend>
+  <exec_depend>whole_body_state_rviz_plugin</exec_depend>
 
 </package>
