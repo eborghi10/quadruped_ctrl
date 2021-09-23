@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 
 import os
-import numpy
+import math
+import numpy as np
 import pyquaternion
 import pcl
 import tf2_ros
@@ -10,13 +11,14 @@ import rospkg
 import threading
 import random
 import ctypes
-from PIL import Image as pil
+import cv2
 import pybullet as p
 import pybullet_data
 from pybullet_utils import gazebo_world_parser
+from cv_bridge import CvBridge
 from sensor_msgs.msg import Image, Imu, JointState, PointCloud2, PointField
 from nav_msgs.msg import Odometry
-from geometry_msgs.msg import TransformStamped, Twist
+from geometry_msgs.msg import PoseWithCovarianceStamped, TransformStamped, Twist
 from quadruped_ctrl.srv import QuadrupedCmd, QuadrupedCmdResponse
 from whole_body_state_msgs.msg import WholeBodyState
 from whole_body_state_msgs.msg import JointState as WBJointState
@@ -29,6 +31,8 @@ class StructPointer(ctypes.Structure):
 
 class WalkingSimulation(object):
     def __init__(self):
+        self.terrain = "racetrack"
+        self.camera = True
         self.get_last_vel = [0] * 3
         self.robot_height = 0.30
         self.motor_id_list = [0, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14]
@@ -80,7 +84,7 @@ class WalkingSimulation(object):
 
     def __init_simulator(self):
         robot_start_pos = [0, 0, 0.42]
-        p.connect(p.GUI)  # or p.DIRECT for non-graphical version
+        p.connect(p.GUI)
         p.setAdditionalSearchPath(pybullet_data.getDataPath())  # optionally
         p.resetSimulation()
         p.setTimeStep(1.0/self.freq)
@@ -156,7 +160,17 @@ class WalkingSimulation(object):
             gazebo_world_parser.parseWorld(p, filepath="worlds/racetrack_day.world")
             p.configureDebugVisualizer(shadowMapResolution=8192)
             p.configureDebugVisualizer(shadowMapWorldSize=25)
+            # Enable rendering after loading the world
             p.configureDebugVisualizer(p.COV_ENABLE_RENDERING, 1)
+
+        # Disable visualization of cameras in pybullet GUI
+        p.configureDebugVisualizer(p.COV_ENABLE_RGB_BUFFER_PREVIEW, 0)
+        p.configureDebugVisualizer(p.COV_ENABLE_DEPTH_BUFFER_PREVIEW, 0)
+        p.configureDebugVisualizer(p.COV_ENABLE_SEGMENTATION_MARK_PREVIEW, 0)
+
+        # Enable this if you want better performance
+        p.configureDebugVisualizer(p.COV_ENABLE_SINGLE_STEP_RENDERING, 1)
+        p.configureDebugVisualizer(p.COV_ENABLE_GUI, 1)
 
         # TODO: Get the URDF from robot_description parameter (or URDF file in the repo)
         self.boxId = p.loadURDF("mini_cheetah/mini_cheetah.urdf", robot_start_pos, useFixedBase=False)
@@ -188,14 +202,12 @@ class WalkingSimulation(object):
             self.cpp_gait_ctrller.pre_work(self.__convert_type(
                 imu_data), self.__convert_type(leg_data["state"]))
 
-        for j in range(16):
-            p.setJointMotorControl2(self.boxId, j, p.VELOCITY_CONTROL, force=0)
+        p.setJointMotorControlArray(bodyUniqueId=self.boxId,
+                                    jointIndices=self.motor_id_list,
+                                    controlMode=p.VELOCITY_CONTROL,
+                                    forces=[0]*len(self.motor_id_list))
 
         self.cpp_gait_ctrller.set_robot_mode(self.__convert_type(1))
-        for _ in range(200):
-            self.run()  # TODO: THIS IS BLOCKING!!
-            p.stepSimulation
-        self.cpp_gait_ctrller.set_robot_mode(self.__convert_type(0))
 
     def run(self):
         rate = rospy.Rate(self.freq)  # Hz
@@ -227,6 +239,7 @@ class WalkingSimulation(object):
 
         # pub msg
         self.__pub_nav_msg(base_pos, imu_data)
+        self.__pub_ground_truth_pose(base_pos, imu_data)
         self.__pub_imu_msg(imu_data)
         self.__pub_joint_states(leg_data)
         self.__pub_whole_body_state(imu_data, leg_data, base_pos, contact_points)
@@ -243,117 +256,175 @@ class WalkingSimulation(object):
 
         p.stepSimulation()
 
+    def __get_ros_depth_image_msg(self, depth):
+        depth_raw_image = self.far * self.near / (self.far - (self.far - self.near) * depth)
+        depth_raw_image = (depth_raw_image * 1000).astype(np.uint16)
+        msg = CvBridge().cv2_to_imgmsg(depth_raw_image)
+        msg.header.stamp = rospy.Time.now()
+        msg.header.frame_id = "body"
+        return msg
+
+    def __get_ros_rgb_image_msg(self, rgba):
+        image = cv2.cvtColor(np.uint8(rgba), code=cv2.COLOR_RGBA2RGB)
+        msg = CvBridge().cv2_to_imgmsg(image)
+        msg.header.stamp = rospy.Time().now()
+        msg.header.frame_id = "cam"
+        msg.encoding = "rgb8"
+        return msg
+
+    def calIntrinsicMatrix(self):
+        f = math.sqrt(self.width * self.width / 4.0 + self.height * self.height / 4.0) / 2.0 / \
+                math.tan(self.fov / 2.0 / 180.0 * math.pi)
+        return (f, 0.0, self.width / 2.0 - 0.5, 0.0, f, self.height / 2.0 - 0.5, 0.0, 0.0, 1.0)
+
+    def __generate_scene_pointcloud(self, depth, rgba):
+        '''Generate point cloud from depth image and color image
+        Args:
+            depth(str / np.array): Depth image path or depth.
+            rgb(str / np.array): RGB image path or RGB values.
+            intrinsics(np.array): Camera intrinsics matrix.
+            depth_scale(float): The depth factor.
+        Returns:
+            np.array(float), np.array(int): points and colors
+        '''
+        intrinsics = np.array(self.calIntrinsicMatrix()).reshape((3, 3))
+        depth_scale = 1.0
+        depths = self.far * self.near / (self.far - (self.far - self.near) * depth)
+        colors = cv2.cvtColor(np.uint8(rgba), code=cv2.COLOR_RGBA2RGB)
+
+        fx, fy = intrinsics[0, 0], intrinsics[1, 1]
+        cx, cy = intrinsics[0, 2], intrinsics[1, 2]
+
+        xmap, ymap = np.arange(colors.shape[1]), np.arange(colors.shape[0])
+        xmap, ymap = np.meshgrid(xmap, ymap)
+
+        points_z = depths / depth_scale
+        points_x = (xmap - cx) / fx * points_z
+        points_y = (ymap - cy) / fy * points_z
+
+        mask = (points_z > 0)
+        points = np.stack([points_x, points_y, points_z], axis=-1)
+        points = points[mask]
+        colors = colors[mask]
+        return points, colors
+
+    def __get_ros_pointcloud_msg(self, depth, rgba):
+        points, colors = self.__generate_scene_pointcloud(depth, rgba)
+        points = points.astype(np.float32)
+        msg = PointCloud2()
+        msg.header.stamp = rospy.Time().now()
+
+        C = np.zeros((colors[:, 0].size, 4), dtype=np.uint8)
+
+        C[:, 0] = colors[:, 2].astype(np.uint8)
+        C[:, 1] = colors[:, 1].astype(np.uint8)
+        C[:, 2] = colors[:, 0].astype(np.uint8)
+
+        C = C.view("uint32")
+        C = C.view("float32")
+        pointsColor = np.zeros((points.shape[0], 1), \
+        dtype={
+            "names": ( "x", "y", "z", "rgba" ),
+            "formats": ( "f4", "f4", "f4", "f4" )} )
+
+        points = points.astype(np.float32)
+
+        pointsColor["x"] = points[:, 0].reshape((-1, 1))
+        pointsColor["y"] = points[:, 1].reshape((-1, 1))
+        pointsColor["z"] = points[:, 2].reshape((-1, 1))
+        pointsColor["rgba"] = C
+        msg.header.frame_id = "cam"
+        if len(points.shape) == 3:
+            msg.height = points.shape[1]
+            msg.width = points.shape[0]
+        else:
+            msg.height = 1
+            msg.width = len(points)
+
+        msg.fields = [
+            PointField('x', 0, PointField.FLOAT32, 1),
+            PointField('y', 4, PointField.FLOAT32, 1),
+            PointField('z', 8, PointField.FLOAT32, 1),
+            PointField('rgb', 12, PointField.FLOAT32, 1)]
+        msg.is_bigendian = False
+        msg.point_step = 16
+        msg.row_step = msg.point_step * points.shape[0]
+        msg.is_dense = int(np.isfinite(points).all())
+        msg.data = pointsColor.tostring()
+        return msg
+
+    # https://github.com/OCRTOC/OCRTOC_software_package/blob/master/pybullet_simulator/scripts/pybullet_env.py
     def __camera_update(self):
-        rate_1 = rospy.Rate(20)
-        near = 0.1
-        far = 1000
+        rate = rospy.Rate(20)
+
+        # Projection matrix parameters
+        self.near = 0.01
+        self.far = 3.0
+        self.fov = 60
         step_index = 4
-        pixelWidth = int(320 / step_index)
-        pixelHeight = int(240 / step_index)
+        self.width = int(320 / step_index)
+        self.height = int(240 / step_index)
+        self.aspect = float(self.width) / float(self.height)
+
+        # Init ROS publishers
+        self.pointcloud_publisher = rospy.Publisher("/cam0/depth/points", PointCloud2, queue_size=1)
+        self.image_publisher = rospy.Publisher("/cam0/image_raw", Image, queue_size=1)
+        self.depth_publisher = rospy.Publisher("/cam0/image_depth", Image, queue_size=1)
+
+        rospy.loginfo("Starting camera thread")
+
+        T1 = np.mat([[0, -1.0/2.0, np.sqrt(3.0)/2.0, 0.25], [-1, 0, 0, 0],
+                     [0, -np.sqrt(3.0)/2.0, -1.0/2.0, 0], [0, 0, 0, 1]])
+
         cameraEyePosition = [0.3, 0, 0.26436384367425125]
         cameraTargetPosition = [1.0, 0, 0]
-        cameraUpVector = [45, 45, 0]
-        self.pointcloud_publisher = rospy.Publisher("/generated_pc", PointCloud2, queue_size=10)
-        self.image_publisher = rospy.Publisher("/cam0/image_raw", Image, queue_size=10)
+        cameraUpVector = [0, 0, 1]
 
         while not rospy.is_shutdown():
             cubePos, cubeOrn = p.getBasePositionAndOrientation(self.boxId)
             get_matrix = p.getMatrixFromQuaternion(cubeOrn)
 
-            T1 = numpy.mat([[0, -1.0/2.0, numpy.sqrt(3.0)/2.0, 0.25], [-1, 0, 0, 0],
-                            [0, -numpy.sqrt(3.0)/2.0, -1.0/2.0, 0], [0, 0, 0, 1]])
+            T2 = np.mat([[get_matrix[0], get_matrix[1], get_matrix[2], cubePos[0]],
+                         [get_matrix[3], get_matrix[4], get_matrix[5], cubePos[1]],
+                         [get_matrix[6], get_matrix[7], get_matrix[8], cubePos[2]],
+                         [0, 0, 0, 1]])
 
-            T2 = numpy.mat([[get_matrix[0], get_matrix[1], get_matrix[2], cubePos[0]],
-                            [get_matrix[3], get_matrix[4], get_matrix[5], cubePos[1]],
-                            [get_matrix[6], get_matrix[7], get_matrix[8], cubePos[2]],
-                            [0, 0, 0, 1]])
+            T3 = np.array(T2*T1)
 
-            T3 = numpy.array(T2*T1)
-
-            cameraEyePosition[0] = T3[0][3]
-            cameraEyePosition[1] = T3[1][3]
-            cameraEyePosition[2] = T3[2][3]
-            cameraTargetPosition = (numpy.mat(T3)*numpy.array([[0],[0],[1],[1]]))[0:3]
+            cameraEyePosition = T3[0:3, 3].tolist()
+            cameraTargetPosition = (np.mat(T3) * np.array([[0], [0], [1], [1]]))[0:3]
 
             q = pyquaternion.Quaternion(matrix=T3)
             cameraQuat = [q[1], q[2], q[3], q[0]]
 
-            self.robot_tf.sendTransform(self.__fill_tf_message("world", "robot", cubePos, cubeOrn))
+            self.robot_tf.sendTransform(self.__fill_tf_message("world", "body", cubePos, cubeOrn))
             self.robot_tf.sendTransform(
                 self.__fill_tf_message("world", "cam", cameraEyePosition, cameraQuat))
             self.robot_tf.sendTransform(
                 self.__fill_tf_message("world", "tar", cameraTargetPosition, cubeOrn))
 
-            cameraUpVector = [0, 0, 1]
             viewMatrix = p.computeViewMatrix(
                 cameraEyePosition, cameraTargetPosition, cameraUpVector)
-            aspect = float(pixelWidth) / float(pixelHeight)
-            projectionMatrix = p.computeProjectionMatrixFOV(60, aspect, near, far)
-            width, height, rgbImg, depthImg, _ = p.getCameraImage(
-                    pixelWidth,
-                    pixelHeight,
+            projectionMatrix = p.computeProjectionMatrixFOV(
+                self.fov, self.aspect, self.near, self.far)
+            _, _, rgba, depth, _ = p.getCameraImage(
+                    self.width,
+                    self.height,
                     viewMatrix=viewMatrix,
                     projectionMatrix=projectionMatrix,
                     shadow=1,
                     lightDirection=[1, 1, 1],
-                    renderer=p.ER_BULLET_HARDWARE_OPENGL)
+                    renderer=p.ER_BULLET_HARDWARE_OPENGL,
+                    flags=p.ER_NO_SEGMENTATION_MASK)
 
-            # point cloud mehted
-            pc_list = []
-            pcl_data = pcl.PointCloud()
-            fx = (pixelWidth*projectionMatrix[0]) / 2.0
-            fy = (pixelHeight*projectionMatrix[5]) / 2.0
-            cx = (1-projectionMatrix[2]) * pixelWidth / 2.0
-            cy = (1+projectionMatrix[6]) * pixelHeight / 2.0
-            cloud_point = [0] * pixelWidth * pixelHeight * 3
-            depthBuffer = numpy.reshape(depthImg, [pixelHeight, pixelWidth])
-            depth = depthBuffer
-            for h in range(0, pixelHeight):
-                for w in range(0, pixelWidth):
-                    depth[h][w] = float(depthBuffer[h, w])
-                    depth[h][w] = far * near / (far - (far - near) * depthBuffer[h][w])
-                    Z = float(depth[h][w])
-                    if (Z > 4 or Z < 0.01):
-                        continue
-                    X = (w - cx) * Z / fx
-                    Y = (h - cy) * Z / fy
-                    XYZ_ = numpy.mat([[X], [Y], [Z], [1]])
-                    XYZ = numpy.array(T3*XYZ_)
-                    X = float(XYZ[0])
-                    Y = float(XYZ[1])
-                    Z = float(XYZ[2])
-                    cloud_point[h * pixelWidth * 3 + w * 3 + 0] = float(X)
-                    cloud_point[h * pixelWidth * 3 + w * 3 + 1] = float(Y)
-                    cloud_point[h * pixelWidth * 3 + w * 3 + 2] = float(Z)
-                    pc_list.append([X, Y, Z])
+            if(self.depth_publisher.get_num_connections() > 0):
+                self.depth_publisher.publish(self.__get_ros_depth_image_msg(depth))
+            if(self.image_publisher.get_num_connections() > 0):
+                self.image_publisher.publish(self.__get_ros_rgb_image_msg(rgba))
+            if(self.pointcloud_publisher.get_num_connections() > 0):
+                self.pointcloud_publisher.publish(self.__get_ros_pointcloud_msg(depth, rgba))
 
-            pcl_data.from_list(pc_list)
-            pub_pointcloud = PointCloud2()
-            pub_pointcloud.header.stamp = rospy.Time().now()
-            pub_pointcloud.header.frame_id = "body"
-            pub_pointcloud.height = 1
-            pub_pointcloud.width = len(pc_list)
-            pub_pointcloud.point_step = 12
-            pub_pointcloud.fields = [
-                PointField('x', 0, PointField.FLOAT32, 1),
-                PointField('y', 4, PointField.FLOAT32, 1),
-                PointField('z', 8, PointField.FLOAT32, 1)]
-            pub_pointcloud.data = numpy.asarray(pc_list, numpy.float32).tostring()
-            self.pointcloud_publisher.publish(pub_pointcloud)
-
-            # grey image
-            pub_image = Image()
-            pub_image.header.stamp = rospy.Time().now()
-            pub_image.header.frame_id = "cam"
-            pub_image.width = width
-            pub_image.height = height
-            pub_image.encoding = "mono8"
-            pub_image.step = width
-            grey = pil.fromarray(rgbImg)
-            pub_image.data = numpy.asarray(grey.convert('L')).reshape([1,-1]).tolist()[0]
-            self.image_publisher.publish(pub_image)
-
-            rate_1.sleep()
+            rate.sleep()
 
     def __convert_type(self, input):
         ctypes_map = {
@@ -425,9 +496,24 @@ class WalkingSimulation(object):
 
         pub_odom.publish(odom)
 
+        # Publish odom Tf
         t = self.__fill_tf_message(
             odom.header.frame_id, odom.child_frame_id, base_pos[0:3], imu_data[3:7])
         self.robot_tf.sendTransform(t)
+
+    def __pub_ground_truth_pose(self, base_pos, imu_data):
+        pub_gt_pose = rospy.Publisher("/gt_pose", PoseWithCovarianceStamped, queue_size=1)
+        gt_pose = PoseWithCovarianceStamped()
+        gt_pose.header.stamp = rospy.Time.now()
+        gt_pose.header.frame_id = "body"
+        gt_pose.pose.pose.position.x = base_pos[0]
+        gt_pose.pose.pose.position.y = base_pos[1]
+        gt_pose.pose.pose.position.z = base_pos[2]
+        gt_pose.pose.pose.orientation.x = imu_data[3]
+        gt_pose.pose.pose.orientation.y = imu_data[4]
+        gt_pose.pose.pose.orientation.z = imu_data[5]
+        gt_pose.pose.pose.orientation.w = imu_data[6]
+        pub_gt_pose.publish(gt_pose)
 
     def __pub_imu_msg(self, imu_data):
         pub_imu = rospy.Publisher("/imu0", Imu, queue_size=30)
@@ -452,13 +538,10 @@ class WalkingSimulation(object):
         js_msg.name = []
         js_msg.position = []
         js_msg.velocity = []
-        # TODO: Use joints length
-        i = 0
-        for _ in joint_states["name"]:
-            js_msg.name.append(joint_states["name"][i].decode('utf-8'))
-            js_msg.position.append(joint_states["state"][i])
-            js_msg.velocity.append(joint_states["state"][12+i])
-            i += 1
+        for idx, name in enumerate(joint_states["name"]):
+            js_msg.name.append(name.decode('utf-8'))
+            js_msg.position.append(joint_states["state"][idx])
+            js_msg.velocity.append(joint_states["state"][12+idx])
         js_msg.header.stamp = rospy.Time.now()
         js_msg.header.frame_id = "body"
         pub_js.publish(js_msg)
@@ -482,20 +565,18 @@ class WalkingSimulation(object):
         wbs.centroidal.base_angular_velocity.z = imu_data[9]
         # This represents the joint state (position, velocity, acceleration and effort)
         wbs.joints = []
-        i = 0
-        for _ in leg_data["name"]:
+        for idx, name in enumerate(leg_data["name"]):
             js_msg = WBJointState()
-            js_msg.name = leg_data["name"][i].decode('utf-8')
-            js_msg.position = leg_data["state"][i]
-            js_msg.velocity = leg_data["state"][12+i]
+            js_msg.name = name.decode('utf-8')
+            js_msg.position = leg_data["state"][idx]
+            js_msg.velocity = leg_data["state"][12+idx]
             wbs.joints.append(js_msg)
-            i += 1
         # This represents the end-effector state (cartesian position and contact forces)
         wbs.contacts = []
         for contact_point in contact_points:
             contact_msg = WBContactState()
             contact_msg.name = "body"
-            contact_msg.type = WBContactState.UNKNOWN
+            contact_msg.type = WBContactState.ACTIVE
             contact_msg.pose.position.x = contact_point[5][0]
             contact_msg.pose.position.y = contact_point[5][1]
             contact_msg.pose.position.z = contact_point[5][2]
@@ -503,7 +584,7 @@ class WalkingSimulation(object):
             contact_msg.surface_normal.x = contact_point[7][0]
             contact_msg.surface_normal.y = contact_point[7][1]
             contact_msg.surface_normal.z = contact_point[7][2]
-            contact_msg.friction_coefficient = 1.0
+            contact_msg.friction_coefficient = self.lateralFriction
             wbs.contacts.append(contact_msg)
         wbs_pub.publish(wbs)
 
