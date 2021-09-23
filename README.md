@@ -39,29 +39,42 @@ you can modify the ```config/quadruped_ctrl_cinfig.yaml/terrain``` to deploy dif
 "racetrack"
 ```
 
-### Running:
-run the gamepad node to control robot:
-```
+### Running
+
+Run the gamepad node to control robot:
+
+```bash
 roslaunch gamepad_ctrl gamepad_ctrl.launch
 ```
-run the controller in simulator:
+
+Alternately, you can run control the robot with the keyboard:
+
+```bash
+rosrun teleop_twist_keyboard teleop_twist_keyboard.py
 ```
+
+Run the controller in simulator:
+
+```bash
 roslaunch quadruped_ctrl quadruped_ctrl.launch
 ```
 
 switch the camera on / off:
-camera set ```True``` or ```False``` in ```config/quadruped_ctrl_config.yaml```, then launch the rviz to see the point cloud:
-```
+camera set `True` or `False` in `config/quadruped_ctrl_config.yaml`, then launch the rviz to see the point cloud:
+
+```bash
 roslaunch quadruped_ctrl vision.launch
 ```
 
 also can switch the gait type:
-```
+
+```bash
 rosservice call /gait_type "cmd: 1"
 ```
 
 gait type:
-```
+
+```no-lang
 0:trot
 1:bunding
 2:pronking
@@ -75,4 +88,3 @@ gait type:
 10:walking
 11:walking2
 ```
-
