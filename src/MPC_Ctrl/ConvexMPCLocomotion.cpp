@@ -89,16 +89,9 @@ void ConvexMPCLocomotion::_SetupCommand(
   _x_vel_des = _x_vel_des * (1 - x_filter) + x_vel_cmd * x_filter;  //一阶低通数字滤波
   _y_vel_des = _y_vel_des * (1 - y_filter) + y_vel_cmd * y_filter;
   _yaw_turn_rate = _yaw_turn_rate * (1 - yaw_filter) + yaw_vel_cmd * yaw_filter;
-  if(_x_vel_des > 2.0) {
-    _x_vel_des = 2.0;
-  } else if(_x_vel_des < -1.0) {
-    _x_vel_des = -1.0;
-  }
-  if(_y_vel_des > 0.6) {
-    _y_vel_des = 0.6;
-  } else if(_y_vel_des < -0.6) {
-    _y_vel_des = -0.6;
-  }
+  // Clamp values (std::clamp was added in C++17)
+  _x_vel_des = std::min(std::max(_x_vel_des, -1.0f), 2.0f);
+  _y_vel_des = std::min(std::max(_y_vel_des, -0.6f), 0.6f);
   _yaw_des = _stateEstimator.getResult().rpy[2] +
              dt * _yaw_turn_rate;  //涉及到了状态估计中的欧拉角
 

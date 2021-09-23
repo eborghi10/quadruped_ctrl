@@ -26,47 +26,11 @@ void DesiredStateCommand<T>::convertToStateCommands(std::vector<double> gamepadC
   data.zero();
   Vec2<float> joystickLeft, joystickRight;
 
-  //T height_cmd(0.3);
-
-  // THIS SHOULD be DISABLE Soon
-  bool use_rc = false;
-
-  if(use_rc) {
-    // if(rcCommand->mode == RC_mode::QP_STAND){ // Stand
-    //   joystickLeft[0] = 0.; // Y
-    //   joystickLeft[1] = 0.;
-    //   joystickRight[0] = rcCommand->rpy_des[2]; // Yaw
-    //   //height_cmd = rcCommand->height_variation;
-
-    // }else if(rcCommand->mode == RC_mode::LOCOMOTION ||
-    //     rcCommand->mode == RC_mode::VISION){ // Walking
-    //   joystickLeft[0] = rcCommand->v_des[1]; // Y
-    //   joystickLeft[1] = rcCommand->v_des[0]; // X
-    //   joystickRight[0] = rcCommand->omega_des[2]; // Yaw
-    //   joystickRight[1] = rcCommand->omega_des[1]; // Pitch
-    //   //height_cmd = rcCommand->height_variation;
-
-    // }else if(rcCommand->mode == RC_mode::TWO_LEG_STANCE){ // Two Contact Stand
-    //   //joystickLeft[0] = rcCommand->p_des[1]; // Y
-    //   joystickLeft[1] = rcCommand->p_des[0]; // X
-    //   joystickRight[0] = rcCommand->rpy_des[2]; // Yaw
-    //   joystickRight[1] = rcCommand->rpy_des[1]; // Pitch
-    //   joystickLeft[0] = rcCommand->rpy_des[0]; // Roll
-
-    // }else{
-    //   joystickLeft.setZero();
-    //   joystickRight.setZero();
-    // }
-  } else { // No Remote Controller
-    joystickLeft(0, 0) = gamepadCommand[0];
-    joystickLeft(1, 0) = gamepadCommand[1];
-    joystickRight(0, 0) = gamepadCommand[2];
-    joystickRight(1, 0) = gamepadCommand[3];
-    // trigger_pressed = gamepadCommand->a;
-  }
-  // Warning!!!!
-  // Recommend not to use stateDes
-  // We are going to remove it soon
+  // No Remote Controller
+  joystickLeft(0, 0) = gamepadCommand[0];
+  joystickLeft(1, 0) = gamepadCommand[1];
+  joystickRight(0, 0) = gamepadCommand[2];
+  joystickRight(1, 0) = gamepadCommand[3];
 
   joystickLeft[0] *= -1.f;
   joystickRight[0] *= -1.f;
@@ -128,12 +92,7 @@ void DesiredStateCommand<T>::desiredStateTrajectory(int N, Vec10<T> dtVec) {
     A(4, 10) = dtVec(k - 1);
     A(5, 11) = dtVec(k - 1);
     data.stateTrajDes.col(k) = A * data.stateTrajDes.col(k - 1);
-    for (int i = 0; i < 12; i++) {
-      // std::cout << data.stateTrajDes(i, k) << " ";
-    }
-    // std::cout << std::endl;
   }
-  // std::cout << std::endl;
 }
 
 /**
@@ -147,44 +106,6 @@ float DesiredStateCommand<T>::deadband(float command, T minVal, T maxVal) {
     return (command / (2)) * (maxVal - minVal);
   }
 }
-
-/**
- *
- */
-// template <typename T>
-// void DesiredStateCommand<T>::printRawInfo() {
-//   // Increment printing iteration
-//   printIter++;
-
-//   // Print at requested frequency
-//   if (printIter == printNum) {
-//     std::cout << "[DESIRED STATE COMMAND] Printing Raw Gamepad Info...\n";
-//     std::cout << "---------------------------------------------------------\n";
-//     std::cout << "Button Start: " << gamepadCommand->start
-//               << " | Back: " << gamepadCommand->back << "\n";
-//     std::cout << "Button A: " << gamepadCommand->a
-//               << " | B: " << gamepadCommand->b << " | X: " << gamepadCommand->x
-//               << " | Y: " << gamepadCommand->y << "\n";
-//     std::cout << "Left Stick Button: " << gamepadCommand->leftStickButton
-//               << " | X: " << gamepadCommand->leftStickAnalog[0]
-//               << " | Y: " << gamepadCommand->leftStickAnalog[1] << "\n";
-//     std::cout << "Right Analog Button: " << gamepadCommand->rightStickButton
-//               << " | X: " << gamepadCommand->rightStickAnalog[0]
-//               << " | Y: " << gamepadCommand->rightStickAnalog[1] << "\n";
-//     std::cout << "Left Bumper: " << gamepadCommand->leftBumper
-//               << " | Trigger Switch: " << gamepadCommand->leftTriggerButton
-//               << " | Trigger Value: " << gamepadCommand->leftTriggerAnalog
-//               << "\n";
-//     std::cout << "Right Bumper: " << gamepadCommand->rightBumper
-//               << " | Trigger Switch: " << gamepadCommand->rightTriggerButton
-//               << " | Trigger Value: " << gamepadCommand->rightTriggerAnalog
-//               << "\n\n";
-//     std::cout << std::endl;
-
-//     // Reset iteration counter
-//     printIter = 0;
-//   }
-// }
 
 /**
  *

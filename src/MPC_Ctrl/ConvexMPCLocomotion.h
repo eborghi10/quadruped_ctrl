@@ -9,6 +9,7 @@
 #include <fstream>
 #include <sys/time.h>
 
+#include <algorithm>
 #include <cstdio>
 #include <vector>
 
