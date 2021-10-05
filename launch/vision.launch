@@ -1,3 +1,10 @@
 <launch>
     <node name="rviz" pkg="rviz" type="rviz" args="-d $(find quadruped_ctrl)/rviz/vision.rviz" />
+
+    <!-- Launch elevation mapping node. -->
+    <node pkg="elevation_mapping" type="elevation_mapping" name="elevation_mapping" output="screen">
+        <rosparam command="load" file="$(find quadruped_ctrl)/config/elevation_mapping/robots/mini_cheetah.yaml" />
+        <rosparam command="load" file="$(find quadruped_ctrl)/config/elevation_mapping/sensor_processors/perfect.yaml" />
+        <rosparam command="load" file="$(find quadruped_ctrl)/config/elevation_mapping/postprocessing/postprocessor_pipeline.yaml" />
+    </node>
 </launch>

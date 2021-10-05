@@ -19,6 +19,7 @@
   <build_export_depend>message_generation</build_export_depend>
   <build_export_depend>std_msgs</build_export_depend>
 
+  <exec_depend>elevation_mapping</exec_depend>
   <exec_depend>geometry_msgs</exec_depend>
   <!-- <exec_depend condition="$ROS_PYTHON_VERSION == 2">python-pcl</exec_depend>
   <exec_depend condition="$ROS_PYTHON_VERSION == 3">python3-pcl</exec_depend> -->
