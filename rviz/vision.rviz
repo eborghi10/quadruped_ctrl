@@ -5,6 +5,7 @@ Panels:
     Property Tree Widget:
       Expanded:
         - /Odometry1/Shape1
+        - /Footprint polygon1/Status1
       Splitter Ratio: 0.5
     Tree Height: 479
   - Class: rviz/Selection
@@ -69,8 +70,8 @@ Visualization Manager:
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
-        Max Value: 0.6388188600540161
-        Min Value: 0.017907530069351196
+        Max Value: 0.6387952566146851
+        Min Value: 0.01794537901878357
         Value: true
       Axis: Z
       Channel Name: intensity
@@ -420,6 +421,57 @@ Visualization Manager:
       Topic: /wb_state
       Unreliable: false
       Value: true
+    - Alpha: 1
+      Autocompute Intensity Bounds: true
+      Class: grid_map_rviz_plugin/GridMap
+      Color: 200; 200; 200
+      Color Layer: elevation
+      Color Transformer: GridMapLayer
+      Enabled: false
+      Height Layer: elevation
+      Height Transformer: GridMapLayer
+      History Length: 1
+      Invert Rainbow: false
+      Max Color: 255; 255; 255
+      Max Intensity: 10
+      Min Color: 0; 0; 0
+      Min Intensity: 0
+      Name: Elevation map
+      Show Grid Lines: true
+      Topic: /elevation_mapping/elevation_map
+      Unreliable: false
+      Use Rainbow: true
+      Value: false
+    - Alpha: 1
+      Autocompute Intensity Bounds: true
+      Class: grid_map_rviz_plugin/GridMap
+      Color: 200; 200; 200
+      Color Layer: elevation
+      Color Transformer: GridMapLayer
+      Enabled: true
+      Height Layer: elevation
+      Height Transformer: GridMapLayer
+      History Length: 1
+      Invert Rainbow: false
+      Max Color: 255; 255; 255
+      Max Intensity: 10
+      Min Color: 0; 0; 0
+      Min Intensity: 0
+      Name: Traversability map
+      Show Grid Lines: true
+      Topic: /traversability_estimation/traversability_map
+      Unreliable: false
+      Use Rainbow: true
+      Value: true
+    - Alpha: 1
+      Class: rviz/Polygon
+      Color: 25; 255; 0
+      Enabled: true
+      Name: Footprint polygon
+      Queue Size: 10
+      Topic: /traversability_estimation/footprint_polygon
+      Unreliable: false
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -456,17 +508,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 0.2545355260372162
-        Y: 0.25917696952819824
-        Z: 0.3572041690349579
+        X: 0.177936390042305
+        Y: 0.16557061672210693
+        Z: 0.4227852523326874
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.3097972273826599
+      Pitch: 0.3147971034049988
       Target Frame: <Fixed Frame>
-      Yaw: 2.2623178958892822
+      Yaw: 2.322322130203247
     Saved: ~
 Window Geometry:
   Displays:

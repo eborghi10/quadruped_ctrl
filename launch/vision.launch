@@ -7,4 +7,14 @@
         <rosparam command="load" file="$(find quadruped_ctrl)/config/elevation_mapping/sensor_processors/perfect.yaml" />
         <rosparam command="load" file="$(find quadruped_ctrl)/config/elevation_mapping/postprocessing/postprocessor_pipeline.yaml" />
     </node>
+
+    <!-- Traversability map -->
+    <node pkg="traversability_estimation" type="traversability_estimation_node" name="traversability_estimation" output="screen">
+        <rosparam command="load" file="$(find quadruped_ctrl)/config/traversability_estimation/robot.yaml"/>
+        <rosparam command="load" file="$(find quadruped_ctrl)/config/traversability_estimation/robot_footprint_parameter.yaml"/>
+        <rosparam command="load" file="$(find quadruped_ctrl)/config/traversability_estimation/robot_filter_parameter.yaml"/>
+    </node>
+    <node pkg="grid_map_visualization" type="grid_map_visualization" name="traversability_map_visualization" output="screen">
+        <rosparam command="load" file="$(find quadruped_ctrl)/config/traversability_estimation/traversability.yaml"/>
+    </node>
 </launch>

@@ -1,25 +1,26 @@
 #!/usr/bin/env python
 
-import os
-import math
-import numpy as np
-import pyquaternion
-import pcl
-import tf2_ros
-import rospy
-import rospkg
-import threading
-import random
+import concurrent
 import ctypes
 import cv2
+import math
+import numpy as np
+import os
 import pybullet as p
 import pybullet_data
-from pybullet_utils import gazebo_world_parser
+import random
+import rospkg
+import rospy
+import tf2_ros
+import threading
+
 from cv_bridge import CvBridge
-from sensor_msgs.msg import Image, Imu, JointState, PointCloud2, PointField
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import PoseWithCovarianceStamped, TransformStamped, Twist
 from quadruped_ctrl.srv import QuadrupedCmd, QuadrupedCmdResponse
+from pybullet_utils import gazebo_world_parser
+from sensor_msgs.msg import Image, Imu, JointState, PointCloud2, PointField
+from tf_conversions import transformations
 from whole_body_state_msgs.msg import WholeBodyState
 from whole_body_state_msgs.msg import JointState as WBJointState
 from whole_body_state_msgs.msg import ContactState as WBContactState
@@ -83,7 +84,7 @@ class WalkingSimulation(object):
         rospy.loginfo("find so file = " + so_file)
 
     def __init_simulator(self):
-        robot_start_pos = [0, 0, 0.42]
+        robot_start_pos = [0, 0, self.robot_height]
         p.connect(p.GUI)
         p.setAdditionalSearchPath(pybullet_data.getDataPath())  # optionally
         p.resetSimulation()
@@ -169,7 +170,7 @@ class WalkingSimulation(object):
         p.configureDebugVisualizer(p.COV_ENABLE_SEGMENTATION_MARK_PREVIEW, 0)
 
         # Enable this if you want better performance
-        p.configureDebugVisualizer(p.COV_ENABLE_SINGLE_STEP_RENDERING, 1)
+        p.configureDebugVisualizer(p.COV_ENABLE_SINGLE_STEP_RENDERING, 0)
         p.configureDebugVisualizer(p.COV_ENABLE_GUI, 1)
 
         # TODO: Get the URDF from robot_description parameter (or URDF file in the repo)
@@ -222,11 +223,11 @@ class WalkingSimulation(object):
                 self.__reset_robot()
             if(low_energy_flag < p.readUserDebugParameter(self.low_energy_mode)):
                 low_energy_flag = p.readUserDebugParameter(self.low_energy_mode)
-                rospy.logwarn("set robot to low energy mode")
+                rospy.loginfo("set robot to low energy mode")
                 self.cpp_gait_ctrller.set_robot_mode(self.__convert_type(1))
             if(high_performance_flag < p.readUserDebugParameter(self.high_performance_mode)):
                 high_performance_flag = p.readUserDebugParameter(self.high_performance_mode)
-                rospy.logwarn("set robot to high performance mode")
+                rospy.loginfo("set robot to high performance mode")
                 self.cpp_gait_ctrller.set_robot_mode(self.__convert_type(0))
 
             self.__simulation_step()
@@ -394,8 +395,8 @@ class WalkingSimulation(object):
             cameraEyePosition = T3[0:3, 3].tolist()
             cameraTargetPosition = (np.mat(T3) * np.array([[0], [0], [1], [1]]))[0:3]
 
-            q = pyquaternion.Quaternion(matrix=T3)
-            cameraQuat = [q[1], q[2], q[3], q[0]]
+            # Get quaternion from numpy homogeneus matrix
+            cameraQuat = transformations.quaternion_from_matrix(T3)
 
             self.robot_tf.sendTransform(self.__fill_tf_message("world", "body", cubePos, cubeOrn))
             self.robot_tf.sendTransform(
@@ -417,12 +418,21 @@ class WalkingSimulation(object):
                     renderer=p.ER_BULLET_HARDWARE_OPENGL,
                     flags=p.ER_NO_SEGMENTATION_MASK)
 
-            if(self.depth_publisher.get_num_connections() > 0):
-                self.depth_publisher.publish(self.__get_ros_depth_image_msg(depth))
-            if(self.image_publisher.get_num_connections() > 0):
-                self.image_publisher.publish(self.__get_ros_rgb_image_msg(rgba))
-            if(self.pointcloud_publisher.get_num_connections() > 0):
-                self.pointcloud_publisher.publish(self.__get_ros_pointcloud_msg(depth, rgba))
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                f1 = executor.submit(self.__get_ros_depth_image_msg, depth)
+                f2 = executor.submit(self.__get_ros_rgb_image_msg, rgba)
+                f3 = executor.submit(self.__get_ros_pointcloud_msg, depth, rgba)
+
+                r1 = f1.result()
+                r2 = f2.result()
+                r3 = f3.result()
+
+                if(self.depth_publisher.get_num_connections() > 0):
+                    self.depth_publisher.publish(r1)
+                if(self.image_publisher.get_num_connections() > 0):
+                    self.image_publisher.publish(r2)
+                if(self.pointcloud_publisher.get_num_connections() > 0):
+                    self.pointcloud_publisher.publish(r3)
 
             rate.sleep()
 

@@ -3,7 +3,14 @@ map_frame_id:                               world
 robot_base_frame_id:                        body
 robot_pose_with_covariance_topic:           /gt_pose
 robot_pose_cache_size:                      50
-point_cloud_topic:                          /cam0/depth/points
+input_sources:
+  point_cloud:
+    type:                                   pointcloud
+    topic:                                  /cam0/depth/points
+    queue_size:                             5
+    publish_on_update:                      true
+    sensor_processor:
+      type:                                 perfect
 track_point_frame_id:                       cam
 track_point_x:                              0.0
 track_point_y:                              0.0
