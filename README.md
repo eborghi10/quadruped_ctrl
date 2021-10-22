@@ -1,37 +1,38 @@
 # quadruped_robot
 
 ### MIT mini cheetah simulation in pybullet
+
 MIT mini cheetah use customized simulator and lcm framework, which is not a popular way to do the robot development. Now, we extract the algorithm and do the simulation using ros and pybullet. This can be simple to deploy the system into different custom robot or plantform, and easy to learn the algorithm.
 
 <img src="https://github.com/Derek-TH-Wang/quadruped_ctrl/blob/master/quadruped_balance.gif" alt="show" />
 <img src="https://github.com/Derek-TH-Wang/quadruped_ctrl/blob/master/vision.png" alt="show" />
 <img src="https://github.com/Derek-TH-Wang/quadruped_ctrl/blob/master/rviz.png" alt="show" />
 
-### System requirements:
+### System requirements
+
 Ubuntu 18.04, ROS Melodic
 
-### Dependency:
-use Logitech gamepad to control robot
-```
+### Dependency
+
+Use Logitech gamepad to control robot
+
+```bash
 git clone https://github.com/Derek-TH-Wang/gamepad_ctrl.git
 ```
 
 ### Build
-```
+
+```bash
 cd {your workspace}
 catkin make
 source devel/setup.bash
 ```
 
-#### Install Python dependencies
-
-```bash
-pip3 install -r requirements.txt
-```
-
 ### Terrain
-you can modify the ```config/quadruped_ctrl_cinfig.yaml/terrain``` to deploy different terrains, there are four terrains supported in the simulator now, for example:
-```
+
+You can modify the ```config/quadruped_ctrl_cinfig.yaml/terrain``` to deploy different terrains, there are four terrains supported in the simulator now, for example:
+
+```no-lang
 "plane"
 "stairs"
 "random1"
