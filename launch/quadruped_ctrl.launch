@@ -5,8 +5,12 @@
     <param name="robot_description" command="$(find xacro)/xacro --inorder $(arg mini_cheetah_xacro)" />
     <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
 
+    <arg name="gdb_debugging" default="false" doc="True to enable gdb debugging"/>
+    <arg name="launch_prefix" value="xterm -e gdb --args python3" if="$(arg gdb_debugging)"/>
+    <arg name="launch_prefix" value="" unless="$(arg gdb_debugging)"/>
     <node name="quadruped_simulator" pkg="quadruped_ctrl" type="walking_simulation.py"
-          respawn="false" output="screen" required="true"/>
+          respawn="false" output="screen" required="true"
+          launch-prefix="$(arg launch_prefix)"/>
 
     <include file="$(find quadruped_ctrl)/launch/vision.launch"/>
 </launch>
