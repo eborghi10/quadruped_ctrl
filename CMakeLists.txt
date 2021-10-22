@@ -71,14 +71,18 @@ add_library(${PROJECT_NAME}
   src/MPC_Ctrl/convexMPC_interface.cpp
   src/MPC_Ctrl/SolverMPC.cpp
   src/MPC_Ctrl/RobotState.cpp
-  src/Controllers/FootSwingTrajectory.cpp
-  src/Controllers/LegController.cpp
   src/Controllers/DesiredStateCommand.cpp
+  src/Controllers/FootSwingTrajectory.cpp
+  src/Controllers/GaitScheduler.cpp
+  src/Controllers/LegController.cpp
   src/Controllers/OrientationEstimator.cpp
   src/Controllers/PositionVelocityEstimator.cpp
   src/Controllers/SafetyChecker.cpp
   src/Dynamics/Quadruped.cpp
   src/Dynamics/FloatingBaseModel.cpp
+  src/FSM_States/ControlFSM.cpp
+  src/FSM_States/FSM_State_Locomotion.cpp
+  src/WBC_Ctrl/LocomotionCtrl/LocomotionCtrl.cpp
   src/GaitCtrller.cpp
 )
 
@@ -88,6 +92,14 @@ target_link_libraries(${PROJECT_NAME}
   JCQP
   qpOASES
   osqp
+)
+
+add_library(MIT_Controller
+  src/MIT_Controller.cpp
+)
+target_link_libraries(MIT_Controller
+  ${catkin_LIBRARIES}
+  ${PROJECT_NAME}
 )
 
 #############

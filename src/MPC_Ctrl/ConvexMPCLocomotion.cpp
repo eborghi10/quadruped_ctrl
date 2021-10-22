@@ -75,7 +75,7 @@ void ConvexMPCLocomotion::recompute_timing(int iterations_per_mpc) {
 //设置期望值
 void ConvexMPCLocomotion::_SetupCommand(
     StateEstimatorContainer<float>& _stateEstimator,
-    std::vector<double> gamepadCommand) {
+    GamepadCommand gamepadCommand) {
   _body_height = 0.25;
 
   float x_vel_cmd, y_vel_cmd, yaw_vel_cmd;
@@ -111,7 +111,7 @@ void ConvexMPCLocomotion::run(Quadruped<float>& _quadruped,
                               LegController<float>& _legController,
                               StateEstimatorContainer<float>& _stateEstimator,
                               DesiredStateCommand<float>& /*_desiredStateCommand*/,
-                              std::vector<double> gamepadCommand,
+                              GamepadCommand gamepadCommand,
                               int gaitType, int robotMode) {
   bool omniMode = false;
   // Command Setup

@@ -9,14 +9,15 @@
 #include <string>
 
 #include "Controllers/ContactEstimator.h"
-#include "Controllers/ControlFSMData.h"
 #include "Controllers/DesiredStateCommand.h"
 #include "Controllers/OrientationEstimator.h"
 #include "Controllers/PositionVelocityEstimator.h"
 #include "Controllers/RobotLegState.h"
 #include "Controllers/StateEstimatorContainer.h"
-#include "Controllers/SafetyChecker.h"
+// #include "Controllers/SafetyChecker.h"
 #include "Dynamics/MiniCheetah.h"
+#include "FSM_States/ControlFSM.h"
+#include "FSM_States/ControlFSMData.h"
 #include "MPC_Ctrl/ConvexMPCLocomotion.h"
 #include "Utilities/IMUTypes.h"
 #include "calculateTool.h"
@@ -41,23 +42,23 @@ class GaitCtrller {
   int _gaitType = 0;
   int _robotMode = 0;
   bool _safetyCheck = true;
-  std::vector<double> _gamepadCommand;
   Vec4<float> ctrlParam;
 
-  Quadruped<float> _quadruped;
-  FloatingBaseModel<float> _model;
-  std::unique_ptr<ConvexMPCLocomotion> convexMPC;
-  std::unique_ptr<LegController<float>> _legController;
-  std::unique_ptr<StateEstimatorContainer<float>> _stateEstimator;
+  // Quadruped<float> _quadruped;
+  // FloatingBaseModel<float> _model;
+  // std::unique_ptr<ConvexMPCLocomotion> convexMPC;
+  // std::unique_ptr<LegController<float>> _legController;
+  // std::unique_ptr<StateEstimatorContainer<float>> _stateEstimator;
   LegData _legdata;
   LegCommand legcommand;
   ControlFSMData<float> control_data;
   VectorNavData _vectorNavData;
-  std::unique_ptr<CheaterState<double>> cheaterState;
+  // std::unique_ptr<CheaterState<double>> cheaterState;
   StateEstimate<float> _stateEstimate;
   std::unique_ptr<RobotControlParameters> controlParameters;
   std::unique_ptr<DesiredStateCommand<float>> _desiredStateCommand;
-  std::unique_ptr<SafetyChecker<float>> safetyChecker;
+  GamepadCommand _gamepadCommand;
+  // std::unique_ptr<SafetyChecker<float>> safetyChecker;
 };
 
 extern "C" {

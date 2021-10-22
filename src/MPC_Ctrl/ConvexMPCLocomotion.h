@@ -2,7 +2,7 @@
 #define _CONVEXMPCLOCOMOTION_H
 
 #include "Controllers/FootSwingTrajectory.h"
-#include "Controllers/ControlFSMData.h"
+#include "FSM_States/ControlFSMData.h"
 #include "SparseCMPC.h"
 #include "Utilities/cppTypes.h"
 #include "Gait.h"
@@ -92,7 +92,7 @@ public:
 
   template<typename T>
   void run(Quadruped<T> &_quadruped, LegController<T> &_legController, StateEstimatorContainer<float> &_stateEstimator,
-          DesiredStateCommand<T> &_desiredStateCommand, std::vector<double> gamepadCommand, int gaitType, int robotMode = 0);
+          DesiredStateCommand<T> &_desiredStateCommand, GamepadCommand gamepadCommand, int gaitType, int robotMode = 0);
   // void _SetupCommand(StateEstimatorContainer<float> &_stateEstimator, std::vector<double> gamepadCommand);
   bool currently_jumping = false;
 
@@ -112,7 +112,7 @@ public:
   Vec4<float> contact_state;
 
 private:
-  void _SetupCommand(StateEstimatorContainer<float> &_stateEstimator, std::vector<double> gamepadCommand);
+  void _SetupCommand(StateEstimatorContainer<float> &_stateEstimator, GamepadCommand gamepadCommand);
 
   float _yaw_turn_rate = 0.;
   float _yaw_des;

@@ -2,13 +2,12 @@
 #define CONTROLFSMDATA_H
 
 // #include <ControlParameters/RobotParameters.h>
-// #include <MIT_UserParameters.h>
-// #include "Controllers/DesiredStateCommand.h"
-// #include "Controllers/GaitScheduler.h"
-#include "LegController.h"
-#include "StateEstimatorContainer.h"
+#include "Controllers/GaitScheduler.h"
+#include "Controllers/DesiredStateCommand.h"
+#include "Controllers/LegController.h"
+#include "Controllers/MIT_UserParameters.h"
+#include "Controllers/StateEstimatorContainer.h"
 #include "Dynamics/Quadruped.h"
-#include "DesiredStateCommand.h"
 
 /**
  *
@@ -19,10 +18,10 @@ struct ControlFSMData {
   Quadruped<T>* _quadruped;
   StateEstimatorContainer<T>* _stateEstimator;
   LegController<T>* _legController;
-  // GaitScheduler<T>* _gaitScheduler;
+  GaitScheduler<T>* _gaitScheduler;
   DesiredStateCommand<T>* _desiredStateCommand;
-  // RobotControlParameters* controlParameters;
-  // MIT_UserParameters* userParameters;
+  RobotControlParameters* controlParameters;
+  MIT_UserParameters* userParameters;
   // VisualizationData* visualizationData;
 };
 

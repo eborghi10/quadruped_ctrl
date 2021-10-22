@@ -22,15 +22,16 @@ template struct DesiredStateData<float>;
  *
  */
 template <typename T>
-void DesiredStateCommand<T>::convertToStateCommands(std::vector<double> gamepadCommand) {
+void DesiredStateCommand<T>::convertToStateCommands() {
   data.zero();
   Vec2<float> joystickLeft, joystickRight;
 
   // No Remote Controller
-  joystickLeft(0, 0) = gamepadCommand[0];
-  joystickLeft(1, 0) = gamepadCommand[1];
-  joystickRight(0, 0) = gamepadCommand[2];
-  joystickRight(1, 0) = gamepadCommand[3];
+  joystickLeft = gamepadCommand[0];   // gamepadCommand->leftStickAnalog;
+  joystickRight = gamepadCommand[1];  // gamepadCommand->rightStickAnalog;
+  // Warning!!!!
+  // Recommend not to use stateDes
+  // We are going to remove it soon
 
   joystickLeft[0] *= -1.f;
   joystickRight[0] *= -1.f;
@@ -104,38 +105,6 @@ float DesiredStateCommand<T>::deadband(float command, T minVal, T maxVal) {
     return 0.0;
   } else {
     return (command / (2)) * (maxVal - minVal);
-  }
-}
-
-/**
- *
- */
-template <typename T>
-void DesiredStateCommand<T>::printStateCommandInfo() {
-  // Increment printing iteration
-  printIter++;
-
-  // Print at requested frequency
-  if (printIter == printNum) {
-    std::cout << "[DESIRED STATE COMMAND] Printing State Command Info...\n";
-    std::cout << "---------------------------------------------------------\n";
-    std::cout << "Position X: " << data.stateDes(0)
-              << " | Y: " << data.stateDes(1) << " | Z: " << data.stateDes(2)
-              << "\n";
-    std::cout << "Orientation Roll: " << data.stateDes(3)
-              << " | Pitch: " << data.stateDes(4)
-              << " | Yaw: " << data.stateDes(5) << "\n";
-    std::cout << "Velocity X: " << data.stateDes(6)
-              << " | Y: " << data.stateDes(7) << " | Z: " << data.stateDes(8)
-              << "\n";
-    std::cout << "Angular Velocity X: " << data.stateDes(9)
-              << " | Y: " << data.stateDes(10) << " | Z: " << data.stateDes(11)
-              << "\n";
-    std::cout << std::endl;
-    std::cout << std::endl;
-
-    // Reset iteration counter
-    printIter = 0;
   }
 }
 
