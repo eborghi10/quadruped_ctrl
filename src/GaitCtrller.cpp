@@ -3,7 +3,8 @@
 GaitCtrller::GaitCtrller(double freq, double* PIDParam)
   : _quadruped{ buildMiniCheetah<float>() }
   , _model{ _quadruped.buildModel() }
-  , convexMPC{ std::make_unique<ConvexMPCLocomotion>(1.0 / freq, 13) }
+  // , convexMPC{ std::make_unique<ConvexMPCLocomotion>(1.0 / freq, 13) }
+  , visionMPC{ std::make_unique<VisionMPCLocomotion>(1.0 / freq, 13) }
   , _legController{ std::make_unique<LegController<float>>(_quadruped) }
   , _stateEstimator{ std::make_unique<StateEstimatorContainer<float>>(
         cheaterState.get(), &_vectorNavData, _legController->datas, &_stateEstimate,
@@ -25,6 +26,8 @@ GaitCtrller::GaitCtrller(double freq, double* PIDParam)
 
   _stateEstimator->addEstimator<VectorNavOrientationEstimator<float>>();
   _stateEstimator->addEstimator<LinearKFPositionVelocityEstimator<float>>();
+
+  _elevationMap = DMat<float>::Zero(x_size, y_size);
 
   std::cout << "finish init controller" << std::endl;
 }
@@ -73,23 +76,9 @@ void GaitCtrller::SetRobotMode(int mode) {
 }
 
 void GaitCtrller::SetRobotVel(double* vel) {
-  if (abs(vel[0]) < 0.03) {
-    _gamepadCommand[0] = 0.0;
-  } else {
-    _gamepadCommand[0] = vel[0] * 1.0;
-  }
-
-  if (abs(vel[1]) < 0.03) {
-    _gamepadCommand[1] = 0.0;
-  } else {
-    _gamepadCommand[1] = vel[1] * 1.0;
-  }
-
-  if (abs(vel[2]) < 0.03) {
-    _gamepadCommand[2] = 0.0;
-  } else {
-  _gamepadCommand[2] = vel[2] * 1.0;
-  }
+  _gamepadCommand[0] = abs(vel[0]) < 0.03 ? 0.0 : vel[0] * 1.0;
+  _gamepadCommand[1] = abs(vel[1]) < 0.03 ? 0.0 : vel[1] * 1.0;
+  _gamepadCommand[2] = abs(vel[2]) < 0.03 ? 0.0 : vel[2] * 1.0;
 }
 
 void GaitCtrller::TorqueCalculator(double* imuData, double* motorData,
@@ -105,41 +94,60 @@ void GaitCtrller::TorqueCalculator(double* imuData, double* motorData,
   _desiredStateCommand->convertToStateCommands(_gamepadCommand);
 
   //safety check
-  if(!safetyChecker->checkSafeOrientation(*_stateEstimator)){
-    _safetyCheck = false;
-    std::cout << "broken: Orientation Safety Check FAIL" << std::endl;
+  // if(!safetyChecker->checkSafeOrientation(*_stateEstimator)){
+  //   _safetyCheck = false;
+  //   std::cout << "broken: Orientation Safety Check FAIL" << std::endl;
 
-  }else if (!safetyChecker->checkPDesFoot(_quadruped, *_legController)) {
-    _safetyCheck = false;
-    std::cout << "broken: Foot Position Safety Check FAIL" << std::endl;
+  // }else if (!safetyChecker->checkPDesFoot(_quadruped, *_legController)) {
+  //   _safetyCheck = false;
+  //   std::cout << "broken: Foot Position Safety Check FAIL" << std::endl;
 
-  }else if (!safetyChecker->checkForceFeedForward(*_legController)) {
-    _safetyCheck = false;
-    std::cout << "broken: Force FeedForward Safety Check FAIL" << std::endl;
+  // }else if (!safetyChecker->checkForceFeedForward(*_legController)) {
+  //   _safetyCheck = false;
+  //   std::cout << "broken: Force FeedForward Safety Check FAIL" << std::endl;
 
-  }else if (!safetyChecker->checkJointLimit(*_legController)) {
-    _safetyCheck = false;
-    std::cout << "broken: Joint Limit Safety Check FAIL" << std::endl;
+  // }else if (!safetyChecker->checkJointLimit(*_legController)) {
+  //   _safetyCheck = false;
+  //   std::cout << "broken: Joint Limit Safety Check FAIL" << std::endl;
+  // }
+
+  // convexMPC->run(_quadruped, *_legController, *_stateEstimator,
+  //                *_desiredStateCommand, _gamepadCommand, _gaitType, _robotMode);
+
+
+  if(_firstMapStored.load()){
+    std::lock_guard<std::mutex> lock{ _elevationMapLock };
+    const DMat<int> dummy_idx_map = DMat<int>::Zero(_elevationMap.rows(), _elevationMap.cols());
+    visionMPC->run(_quadruped, *_legController, *_stateEstimator,
+                  _gamepadCommand, _gaitType,
+                  _elevationMap, dummy_idx_map);
   }
-
-  convexMPC->run(_quadruped, *_legController, *_stateEstimator,
-                 *_desiredStateCommand, _gamepadCommand, _gaitType, _robotMode);
 
   _legController->updateCommand(&legcommand, ctrlParam);
 
-  if(_safetyCheck) {
+  // if(_safetyCheck) {
     for (int i = 0; i < 4; i++) {
       effort[i * 3] = legcommand.tau_abad_ff[i];
       effort[i * 3 + 1] = legcommand.tau_hip_ff[i];
       effort[i * 3 + 2] = legcommand.tau_knee_ff[i];
     }
-  } else {
-    for (int i = 0; i < 4; i++) {
-      effort[i * 3] = 0.0;
-      effort[i * 3 + 1] = 0.0;
-      effort[i * 3 + 2] = 0.0;
-    }
-  }
+  // } else {
+    // for (int i = 0; i < 4; i++) {
+    //   effort[i * 3] = 0.0;
+    //   effort[i * 3 + 1] = 0.0;
+    //   effort[i * 3 + 2] = 0.0;
+    // }
+  // }
 
   // return effort;
+}
+
+void GaitCtrller::StoreElevationMap(double map[]) {
+  _firstMapStored.store(true);
+  std::lock_guard<std::mutex> lock{ _elevationMapLock };
+  for(size_t row(0); row<x_size; ++row){
+    for(size_t col(0); col<y_size; ++col){
+      _elevationMap(row,col) = map[row+col];
+    }
+  }
 }

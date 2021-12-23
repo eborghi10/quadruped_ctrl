@@ -4,6 +4,7 @@
 #include <math.h>
 #include <time.h>
 
+#include <atomic>
 #include <iostream>
 #include <memory>
 #include <string>
@@ -18,8 +19,10 @@
 #include "Controllers/SafetyChecker.h"
 #include "Dynamics/MiniCheetah.h"
 #include "MPC_Ctrl/ConvexMPCLocomotion.h"
+#include "MPC_Ctrl/VisionMPC/VisionMPCLocomotion.h"
+#include "Utilities/cppTypes.h"
 #include "Utilities/IMUTypes.h"
-#include "calculateTool.h"
+
 
 struct JointEff {
   double eff[12];
@@ -31,6 +34,7 @@ class GaitCtrller {
   ~GaitCtrller();
   void SetIMUData(double* imuData);
   void SetLegData(double* motorData);
+  void StoreElevationMap(double map[]);
   void PreWork(double* imuData, double* motorData);
   void SetGaitType(int gaitType);
   void SetRobotMode(int mode);
@@ -44,9 +48,17 @@ class GaitCtrller {
   std::vector<double> _gamepadCommand;
   Vec4<float> ctrlParam;
 
+  DMat<float> _elevationMap;
+  const size_t x_size = 100;
+  const size_t y_size = 100;
+  const double grid_size = 0.015;
+  std::mutex _elevationMapLock;
+  std::atomic_bool _firstMapStored{ false };
+
   Quadruped<float> _quadruped;
   FloatingBaseModel<float> _model;
-  std::unique_ptr<ConvexMPCLocomotion> convexMPC;
+  // std::unique_ptr<ConvexMPCLocomotion> convexMPC;
+  std::unique_ptr<VisionMPCLocomotion> visionMPC;
   std::unique_ptr<LegController<float>> _legController;
   std::unique_ptr<StateEstimatorContainer<float>> _stateEstimator;
   LegData _legdata;
@@ -96,6 +108,9 @@ JointEff* torque_calculator(double imuData[], double motorData[]) {
   }
   return &jointEff;
 }
+
+// Store elevation map
+void store_map(double map[]) { gCtrller->StoreElevationMap(map); }
 }
 
 #endif

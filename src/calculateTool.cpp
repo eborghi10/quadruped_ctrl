@@ -7,6 +7,7 @@ CalculateTool::CalculateTool(){
   firstOrnot = true;
   lastTime = 0.0;
   lastErr = 0.0;
+  errSum = 0.0;
 }
 
 CalculateTool::~CalculateTool(){
@@ -115,7 +116,7 @@ void CalculateTool::RTmatrix(std::vector<double> orientation, std::vector<double
   translateMatrix = rotationX * rotationY * rotationZ * translation;
 }
 
-void CalculateTool::transform(std::vector<double> coord, std::vector<double> orientation, 
+void CalculateTool::transform(std::vector<double> coord, std::vector<double> orientation,
                               std::vector<double> position, std::vector<double> &transformVector){
   Matrix4d translateMatrix;
   MatrixXd myVector(4,1);
@@ -170,7 +171,7 @@ void CalculateTool::Quat2T(float quat[4], float *T) {
 double CalculateTool::PIDController(double Kp, double Ki, double Kd, double Setpoint, double Input){
   double currentTime;
   double timeChange;
-  double error, errSum, dErr;
+  double error, dErr;
   double Output;
 
   if(firstOrnot){
@@ -190,7 +191,7 @@ double CalculateTool::PIDController(double Kp, double Ki, double Kd, double Setp
   }else{
     dErr = (error - lastErr) / timeChange;
   }
-  
+
 
   Output = Kp * error + Ki * errSum + Kd * dErr;
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import concurrent
+import concurrent.futures
 import ctypes
 import cv2
 import math
@@ -14,11 +14,13 @@ import rospy
 import tf2_ros
 import threading
 
+from pybullet_utils import gazebo_world_parser
+
 from cv_bridge import CvBridge
+from grid_map_msgs.msg import GridMap
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import PoseWithCovarianceStamped, TransformStamped, Twist
 from quadruped_ctrl.srv import QuadrupedCmd, QuadrupedCmdResponse
-from pybullet_utils import gazebo_world_parser
 from sensor_msgs.msg import Image, Imu, JointState, PointCloud2, PointField
 from tf_conversions import transformations
 from whole_body_state_msgs.msg import WholeBodyState
@@ -69,6 +71,7 @@ class WalkingSimulation(object):
         self.s0 = rospy.Service('gait_type', QuadrupedCmd, self.__callback_gait)
         self.s1 = rospy.Service('robot_mode', QuadrupedCmd, self.__callback_mode)
         self.s2 = rospy.Subscriber("cmd_vel", Twist, self.__callback_body_vel, buff_size=30)
+        self.s3 = rospy.Subscriber("elevation_mapping/elevation_map", GridMap, self.__callback_elevation_map)
 
         self.robot_tf = tf2_ros.TransformBroadcaster()
 
@@ -137,24 +140,12 @@ class WalkingSimulation(object):
             planeShape = p.createCollisionShape(shapeType=p.GEOM_PLANE)
             ground_id = p.createMultiBody(0, planeShape)
             p.resetBasePositionAndOrientation(ground_id, [0, 0, 0], [0, 0, 0, 1])
-            # many boxes
-            colSphereId = p.createCollisionShape(
-                p.GEOM_BOX, halfExtents=[0.1, 0.4, 0.01])
-            colSphereId1 = p.createCollisionShape(
-                p.GEOM_BOX, halfExtents=[0.1, 0.4, 0.02])
-            colSphereId2 = p.createCollisionShape(
-                p.GEOM_BOX, halfExtents=[0.1, 0.4, 0.03])
-            colSphereId3 = p.createCollisionShape(
-                p.GEOM_BOX, halfExtents=[0.1, 0.4, 0.04])
-            p.createMultiBody(100, colSphereId, basePosition=[1.0, 1.0, 0.0])
-            p.changeDynamics(colSphereId, -1, lateralFriction=self.lateralFriction)
-            p.createMultiBody(100, colSphereId1, basePosition=[1.2, 1.0, 0.0])
-            p.changeDynamics(colSphereId1, -1, lateralFriction=self.lateralFriction)
-            p.createMultiBody(100, colSphereId2, basePosition=[1.4, 1.0, 0.0])
-            p.changeDynamics(colSphereId2, -1, lateralFriction=self.lateralFriction)
-            p.createMultiBody(100, colSphereId3, basePosition=[1.6, 1.0, 0.0])
-            p.changeDynamics(colSphereId3, -1, lateralFriction=self.lateralFriction)
-            p.changeDynamics(ground_id, -1, lateralFriction=self.lateralFriction)
+            # Stair as a combination of boxes
+            sh_colBox = p.createCollisionShape(p.GEOM_BOX, halfExtents=[2.5, 2.5, 0.2])
+            for step in range(4):
+                p.createMultiBody(baseMass=0, baseCollisionShapeIndex=sh_colBox,
+                                  basePosition=[3.75 + 0.33 * step, 0, -0.2 + (step+1) * 0.25],
+                                  baseOrientation=[0, 0, 0, 1])
         elif self.terrain == "racetrack":
             os.chdir(self.path)
             p.configureDebugVisualizer(p.COV_ENABLE_RENDERING, 0)
@@ -246,16 +237,16 @@ class WalkingSimulation(object):
         self.__pub_whole_body_state(imu_data, leg_data, base_pos, contact_points)
 
         # call cpp function to calculate mpc tau
-        tau = self.cpp_gait_ctrller.torque_calculator(self.__convert_type(
-            imu_data), self.__convert_type(leg_data["state"]))
+        # tau = self.cpp_gait_ctrller.torque_calculator(self.__convert_type(
+        #     imu_data), self.__convert_type(leg_data["state"]))
 
         # set tau to simulator
-        p.setJointMotorControlArray(bodyUniqueId=self.boxId,
-                                    jointIndices=self.motor_id_list,
-                                    controlMode=p.TORQUE_CONTROL,
-                                    forces=tau.contents.eff)
+        # p.setJointMotorControlArray(bodyUniqueId=self.boxId,
+        #                             jointIndices=self.motor_id_list,
+        #                             controlMode=p.TORQUE_CONTROL,
+        #                             forces=tau.contents.eff)
 
-        p.stepSimulation()
+        # p.stepSimulation()
 
     def __get_ros_depth_image_msg(self, depth):
         depth_raw_image = self.far * self.near / (self.far - (self.far - self.near) * depth)
@@ -351,7 +342,7 @@ class WalkingSimulation(object):
         msg.point_step = 16
         msg.row_step = msg.point_step * points.shape[0]
         msg.is_dense = int(np.isfinite(points).all())
-        msg.data = pointsColor.tostring()
+        msg.data = pointsColor.tobytes()
         return msg
 
     # https://github.com/OCRTOC/OCRTOC_software_package/blob/master/pybullet_simulator/scripts/pybullet_env.py
@@ -473,7 +464,7 @@ class WalkingSimulation(object):
         return QuadrupedCmdResponse(0, "get the mode")
 
     def __callback_body_vel(self, msg):
-        vel = [msg.linear.x, msg.linear.y, msg.angular.x]
+        vel = [msg.linear.x, msg.linear.y, msg.angular.z]
         self.cpp_gait_ctrller.set_robot_vel(self.__convert_type(vel))
 
     def __fill_tf_message(self, parent_frame, child_frame, translation, rotation):
@@ -662,6 +653,10 @@ class WalkingSimulation(object):
         contact_points = p.getContactPoints(self.boxId)
 
         return imu_data, leg_data, base_pose[0], contact_points
+
+    def __callback_elevation_map(self, msg):
+        map = list(msg.data[0].data)
+        self.cpp_gait_ctrller.store_map(self.__convert_type(map))
 
 
 if __name__ == '__main__':

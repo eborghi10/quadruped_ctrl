@@ -21,12 +21,12 @@ time_offset_for_point_cloud:                0.0
 sensor_processor/ignore_points_above:       0.4
 robot_motion_map_update/covariance_scale:   0.01
 
-# Map.
-length_in_x:                                6.0
-length_in_y:                                6.0
+# Map
+length_in_x:                                1.5
+length_in_y:                                1.5
 position_x:                                 0.0
 position_y:                                 0.0
-resolution:                                 0.1
+resolution:                                 0.015  # 1.5 cm
 min_variance:                               0.0001
 max_variance:                               0.05
 mahalanobis_distance_threshold:             2.5
@@ -34,8 +34,12 @@ multi_height_noise:                         0.001
 surface_normal_positive_axis:               z
 fused_map_publishing_rate:                  0.5
 enable_visibility_cleanup:                  false
+enable_continuous_cleanup:                  false
 visibility_cleanup_rate:                    1.0
 scanning_duration:                          1.0
+num_callback_threads:                       2
+postprocessor_pipeline_name:                postprocessor_pipeline
+postprocessor_num_threads:                  1
 
 # Init submap
 initialize_elevation_map:                   false

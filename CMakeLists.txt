@@ -62,23 +62,15 @@ add_subdirectory(src/JCQP)
 add_subdirectory(src/osqp)
 
 ## Declare a C++ library
+FILE(GLOB SRC
+  src/*.cpp
+  src/Controllers/*.cpp
+  src/Dynamics/*.cpp
+  src/MPC_Ctrl/*.cpp
+  src/MPC_Ctrl/VisionMPC/*.cpp
+)
 add_library(${PROJECT_NAME}
-  src/MPC_Ctrl/ConvexMPCLocomotion.cpp
-  src/MPC_Ctrl/Gait.cpp
-  src/MPC_Ctrl/SparseCMPC.cpp
-  src/MPC_Ctrl/SparseCMPC_Math.cpp
-  src/MPC_Ctrl/OsqpTriples.cpp
-  src/MPC_Ctrl/convexMPC_interface.cpp
-  src/MPC_Ctrl/SolverMPC.cpp
-  src/MPC_Ctrl/RobotState.cpp
-  src/Controllers/FootSwingTrajectory.cpp
-  src/Controllers/LegController.cpp
-  src/Controllers/DesiredStateCommand.cpp
-  src/Controllers/OrientationEstimator.cpp
-  src/Controllers/PositionVelocityEstimator.cpp
-  src/Controllers/SafetyChecker.cpp
-  src/Dynamics/Quadruped.cpp
-  src/Dynamics/FloatingBaseModel.cpp
+  ${SRC}
   src/GaitCtrller.cpp
 )
 
