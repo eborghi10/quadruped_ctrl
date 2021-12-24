@@ -1,9 +1,9 @@
 #ifndef GAIT_CTRLLER_H
 #define GAIT_CTRLLER_H
 
-#include <math.h>
-#include <time.h>
 
+#include <cmath>
+#include <ctime>
 #include <iostream>
 #include <memory>
 #include <string>
@@ -17,6 +17,7 @@
 #include "Controllers/StateEstimatorContainer.h"
 #include "Controllers/SafetyChecker.h"
 #include "Dynamics/MiniCheetah.h"
+#include "Dynamics/Quadruped.h"
 #include "MPC_Ctrl/ConvexMPCLocomotion.h"
 #include "Utilities/IMUTypes.h"
 #include "calculateTool.h"
@@ -35,12 +36,14 @@ class GaitCtrller {
   void SetGaitType(int gaitType);
   void SetRobotMode(int mode);
   void SetRobotVel(double* vel);
+  void RequestJump(bool request_jump);
   void TorqueCalculator(double* imuData, double* motorData, double* effort);
 
  private:
   int _gaitType = 0;
   int _robotMode = 0;
   bool _safetyCheck = true;
+  bool _jump = false;
   std::vector<double> _gamepadCommand;
   Vec4<float> ctrlParam;
 
@@ -86,6 +89,8 @@ void set_robot_mode(int mode) { gCtrller->SetRobotMode(mode); }
 
 // robot vel can be set in any time
 void set_robot_vel(double vel[]) { gCtrller->SetRobotVel(vel); }
+
+void request_jump(bool request_jump) { gCtrller->RequestJump(request_jump); }
 
 // after init controller and pre work, the mpc calculator can work
 JointEff* torque_calculator(double imuData[], double motorData[]) {

@@ -1,13 +1,11 @@
-#ifndef _CONVEXMPCLOCOMOTION_H
-#define _CONVEXMPCLOCOMOTION_H
+#ifndef CHEETAH_SOFTWARE_CONVEXMPCLOCOMOTION_H
+#define CHEETAH_SOFTWARE_CONVEXMPCLOCOMOTION_H
 
-#include "Controllers/FootSwingTrajectory.h"
-#include "Controllers/ControlFSMData.h"
+#include <Controllers/FootSwingTrajectory.h>
+#include <Controllers/ControlFSMData.h>
+#include <Utilities/cppTypes.h>
 #include "SparseCMPC.h"
-#include "Utilities/cppTypes.h"
 #include "Gait.h"
-#include <fstream>
-#include <sys/time.h>
 
 #include <algorithm>
 #include <cstdio>
@@ -35,28 +33,26 @@ struct CMPC_Jump {
   int jump_wait_counter = 0;
 
   void debug(int seg) {
-    (void)seg;
-    //printf("[%d] pending %d running %d\n", seg, jump_pending, jump_in_progress);
+    printf("[%d] pending %d running %d\n", seg, jump_pending, jump_in_progress);
   }
 
   void trigger_pressed(int seg, bool trigger) {
-    (void)seg;
     if(!pressed && trigger) {
       if(!jump_pending && !jump_in_progress) {
         jump_pending = true;
-        //printf("jump pending @ %d\n", seg);
+        printf("jump pending @ %d\n", seg);
       }
     }
     pressed = trigger;
   }
 
   bool should_jump(int seg) {
-    debug(seg);
+    // debug(seg);
 
     if(jump_pending && seg == START_SEG) {
       jump_pending = false;
       jump_in_progress = true;
-      //printf("jump begin @ %d\n", seg);
+      printf("jump begin @ %d\n", seg);
       seen_end_count = 0;
       last_seg_seen = seg;
       return true;
@@ -68,7 +64,7 @@ struct CMPC_Jump {
         if(seen_end_count == END_COUNT) {
           seen_end_count = 0;
           jump_in_progress = false;
-          //printf("jump end @ %d\n", seg);
+          printf("jump end @ %d\n", seg);
           last_seg_seen = seg;
           return false;
         }
@@ -76,7 +72,6 @@ struct CMPC_Jump {
       last_seg_seen = seg;
       return true;
     }
-
     last_seg_seen = seg;
     return false;
   }
@@ -91,10 +86,8 @@ public:
   void initialize();
 
   template<typename T>
-  void run(Quadruped<T> &_quadruped, LegController<T> &_legController, StateEstimatorContainer<float> &_stateEstimator,
-          DesiredStateCommand<T> &_desiredStateCommand, std::vector<double> gamepadCommand, int gaitType, int robotMode = 0);
-  // void _SetupCommand(StateEstimatorContainer<float> &_stateEstimator, std::vector<double> gamepadCommand);
-  bool currently_jumping = false;
+  void run(Quadruped<T> &_quadruped, LegController<T> &_legController, StateEstimatorContainer<T> &_stateEstimator,
+           std::vector<double> gamepadCommand, int gaitType, int robotMode = 0, bool jump = false);
 
   Vec3<float> pBody_des;
   Vec3<float> vBody_des;
@@ -116,7 +109,6 @@ private:
 
   float _yaw_turn_rate = 0.;
   float _yaw_des;
-  float _yaw_des_true = 0.0;
 
   float _roll_des;
   float _pitch_des;
@@ -136,20 +128,20 @@ private:
   void solveDenseMPC(int *mpcTable, StateEstimatorContainer<float> &_stateEstimator);
   void solveSparseMPC(int *mpcTable, StateEstimatorContainer<float> &_stateEstimator);
   void initSparseMPC();
-  int iterationsBetweenMPC;  //15
-  int horizonLength;    //10
+  int iterationsBetweenMPC;
+  int horizonLength;
   int default_iterations_between_mpc;
-  float dt;  //0.002
-  float dtMPC; //0.03
-  int iterationCounter = 0;  //
+  float dt;
+  float dtMPC;
+  int iterationCounter = 0;
   Vec3<float> f_ff[4];
   Vec4<float> swingTimes;
   FootSwingTrajectory<float> footSwingTrajectories[4];
-  OffsetDurationGait trotting, bounding, pronking, jumping, galloping, standing, trotRunning, walking, walking2, pacing, aio;
+  OffsetDurationGait trotting, bounding, pronking, jumping, galloping, standing, trotRunning, walking, walking2, pacing;
   // MixedFrequncyGait random, random2;
-  Mat3<float> Kp, Kd, Kp_stance, Kd_stance, Kp1;
+  Mat3<float> Kp, Kd, Kp_stance, Kd_stance;
   bool firstRun = true;
-  bool firstSwing[4];  //true
+  bool firstSwing[4];
   float swingTimeRemaining[4];
   float stand_traj[6];
   int current_gait;
@@ -161,15 +153,13 @@ private:
   float x_comp_integral = 0;
   Vec3<float> pFoot[4];
   CMPC_Result<float> result;
-  float trajAll[20*36];
-  float myflags = 0;
+  float trajAll[12*36];
 
   CMPC_Jump jump_state;
 
   vectorAligned<Vec12<double>> _sparseTrajectory;
 
   SparseCMPC _sparseCMPC;
-
 };
 
 
