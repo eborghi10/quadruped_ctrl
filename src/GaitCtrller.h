@@ -1,9 +1,9 @@
 #ifndef GAIT_CTRLLER_H
 #define GAIT_CTRLLER_H
 
-#include <math.h>
-#include <time.h>
 
+#include <cmath>
+#include <ctime>
 #include <iostream>
 #include <memory>
 #include <string>
@@ -17,6 +17,7 @@
 #include "Controllers/StateEstimatorContainer.h"
 #include "Controllers/SafetyChecker.h"
 #include "Dynamics/MiniCheetah.h"
+#include "Dynamics/Quadruped.h"
 #include "MPC_Ctrl/ConvexMPCLocomotion.h"
 #include "Utilities/IMUTypes.h"
 #include "calculateTool.h"

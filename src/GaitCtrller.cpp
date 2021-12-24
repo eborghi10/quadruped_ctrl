@@ -109,7 +109,7 @@ void GaitCtrller::TorqueCalculator(double* imuData, double* motorData,
   }
 
   convexMPC->run(_quadruped, *_legController, *_stateEstimator,
-                 *_desiredStateCommand, _gamepadCommand, _gaitType, _robotMode);
+                 _gamepadCommand, _gaitType);
 
   _legController->updateCommand(&legcommand, ctrlParam);
 
