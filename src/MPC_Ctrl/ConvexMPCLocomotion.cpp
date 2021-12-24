@@ -157,10 +157,8 @@ void ConvexMPCLocomotion::run(Quadruped<float>& _quadruped,
     omniMode ? v_des_robot : seResult.rBody.transpose() * v_des_robot;
   Vec3<float> v_robot = seResult.vWorld;
 
-  //pretty_print(v_des_world, std::cout, "v des world");
-
   //Integral-esque pitche and roll compensation
-  if(fabs(v_robot[0]) > .2)   //avoid dividing by zero
+  if (fabs(v_robot[0]) > .2)   //avoid dividing by zero
   {
     rpy_int[1] += dt * (_pitch_des - seResult.rpy[1]) / v_robot[0];
   }
@@ -369,10 +367,10 @@ void ConvexMPCLocomotion::updateMPCIfNeeded(
     auto seResult = _stateEstimator.getResult();
     float* p = seResult.position.data();
 
-    Vec3<float> v_des_robot(_x_vel_des, _y_vel_des,0);
+    Vec3<float> v_des_robot(_x_vel_des, _y_vel_des, 0);
     Vec3<float> v_des_world = omniMode ? v_des_robot : seResult.rBody.transpose() * v_des_robot;
 
-    //printf("Position error: %.3f, integral %.3f\n", pxy_err[0], x_comp_integral);
+    // printf("Position error: %.3f, integral %.3f\n", pxy_err[0], x_comp_integral);
 
     if(current_gait == 4)
     {
@@ -383,7 +381,7 @@ void ConvexMPCLocomotion::updateMPCIfNeeded(
         (float)stand_traj[0]/*+(float)fsm->main_control_settings.p_des[0]*/,
         (float)stand_traj[1]/*+(float)fsm->main_control_settings.p_des[1]*/,
         (float)_body_height/*fsm->main_control_settings.p_des[2]*/,
-        0,0,0,0,0,0};
+        0, 0, 0, 0, 0, 0};
 
       for (int i = 0; i < horizonLength; i++)
         for (int j = 0; j < 12; j++)

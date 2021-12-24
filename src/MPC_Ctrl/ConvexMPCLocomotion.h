@@ -7,7 +7,9 @@
 #include "SparseCMPC.h"
 #include "Gait.h"
 
+#include <algorithm>
 #include <cstdio>
+#include <vector>
 
 using Eigen::Array4f;
 using Eigen::Array4i;
@@ -87,11 +89,8 @@ public:
   void initialize();
 
   template<typename T>
-  void run(Quadruped<T> &_quadruped,
-           LegController<T> &_legController,
-           StateEstimatorContainer<T> &_stateEstimator,
-           std::vector<double> gamepadCommand,
-           int gaitType, int robotMode);
+  void run(Quadruped<T> &_quadruped, LegController<T> &_legController, StateEstimatorContainer<T> &_stateEstimator,
+           std::vector<double> gamepadCommand, int gaitType, int robotMode = 0);
 
   Vec3<float> pBody_des;
   Vec3<float> vBody_des;
