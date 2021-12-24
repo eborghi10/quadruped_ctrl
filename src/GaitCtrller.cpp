@@ -79,12 +79,7 @@ void GaitCtrller::SetRobotVel(double* vel) {
 }
 
 void GaitCtrller::RequestJump(bool request_jump) {
-  if (request_jump) {
-    _jump = true;
-  }
-  else {
-    _jump = false;
-  }
+  _jump = request_jump;
 }
 
 void GaitCtrller::TorqueCalculator(double* imuData, double* motorData,

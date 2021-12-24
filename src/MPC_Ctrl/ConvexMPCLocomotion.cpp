@@ -14,18 +14,22 @@
 
 ConvexMPCLocomotion::ConvexMPCLocomotion(float _dt, int _iterations_between_mpc)
     : iterationsBetweenMPC(_iterations_between_mpc)
-    , horizonLength(10)
+    , horizonLength(14)
     , dt(_dt)
-    , trotting(horizonLength, Vec4<int>(0,5,5,0), Vec4<int>(5,5,5,5),"Trotting")
-    , bounding(horizonLength, Vec4<int>(5,5,0,0),Vec4<int>(4,4,4,4),"Bounding")
-    , pronking(horizonLength, Vec4<int>(0,0,0,0),Vec4<int>(4,4,4,4),"Pronking")
-    , jumping(horizonLength, Vec4<int>(0,0,0,0), Vec4<int>(2,2,2,2), "Jumping")
-    , galloping(horizonLength, Vec4<int>(0,2,7,9),Vec4<int>(4,4,4,4),"Galloping")
-    , standing(horizonLength, Vec4<int>(0,0,0,0),Vec4<int>(10,10,10,10),"Standing")
-    , trotRunning(horizonLength, Vec4<int>(0,5,5,0),Vec4<int>(4,4,4,4),"Trot Running")
-    , walking(horizonLength, Vec4<int>(0,3,5,8), Vec4<int>(5,5,5,5), "Walking")
-    , walking2(horizonLength, Vec4<int>(0,5,5,0), Vec4<int>(7,7,7,7), "Walking2")
-    , pacing(horizonLength, Vec4<int>(5,0,5,0),Vec4<int>(5,5,5,5),"Pacing")
+    , trotting(horizonLength, Vec4<int>(0,horizonLength/2,horizonLength/2,0),
+               Vec4<int>(horizonLength/2,horizonLength/2,horizonLength/2,horizonLength/2),"Trotting")
+    , bounding(horizonLength, Vec4<int>(horizonLength/2,horizonLength/2,0,0),
+               Vec4<int>(6,6,6,6),"Bounding")
+    , pronking(horizonLength, Vec4<int>(0,0,0,0),Vec4<int>(6,6,6,6),"Pronking")
+    , jumping(horizonLength, Vec4<int>(0,0,0,0), Vec4<int>(3,3,3,3), "Jumping")
+    , galloping(horizonLength, Vec4<int>(0,4,7,11),Vec4<int>(7,7,7,7),"Galloping")
+    , standing(horizonLength, Vec4<int>(0,0,0,0),Vec4<int>(14,14,14,14),"Standing")
+    , trotRunning(horizonLength, Vec4<int>(0,7,7,0),Vec4<int>(6,6,6,6),"Trot Running")
+    , walking(horizonLength, Vec4<int>(0,horizonLength/2,horizonLength,3*horizonLength/4),
+              Vec4<int>(3*horizonLength/4,3*horizonLength/4,3*horizonLength/4,3*horizonLength/4),
+              "Walking")
+    , walking2(horizonLength, Vec4<int>(0,7,7,0), Vec4<int>(10,10,10,10), "Walking2")
+    , pacing(horizonLength, Vec4<int>(7,0,7,0),Vec4<int>(7,7,7,7),"Pacing")
     // random(horizonLength, Vec4<int>(9,13,13,9), 0.4, "Flying nine thirteenths trot"),
     // random2(horizonLength, Vec4<int>(8,16,16,8), 0.5, "Double Trot")
 {
