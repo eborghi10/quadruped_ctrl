@@ -18,14 +18,10 @@ ConvexMPCLocomotion::ConvexMPCLocomotion(float _dt, int _iterations_between_mpc)
     , dt(_dt)
     , trotting(horizonLength, Vec4<int>(0,5,5,0), Vec4<int>(5,5,5,5),"Trotting")
     , bounding(horizonLength, Vec4<int>(5,5,0,0),Vec4<int>(4,4,4,4),"Bounding")
-    // , bounding(horizonLength, Vec4<int>(5,5,0,0),Vec4<int>(3,3,3,3),"Bounding")
     , pronking(horizonLength, Vec4<int>(0,0,0,0),Vec4<int>(4,4,4,4),"Pronking")
     , jumping(horizonLength, Vec4<int>(0,0,0,0), Vec4<int>(2,2,2,2), "Jumping")
-    // , galloping(horizonLength, Vec4<int>(0,2,7,9),Vec4<int>(6,6,6,6),"Galloping")
-    // , galloping(horizonLength, Vec4<int>(0,2,7,9),Vec4<int>(3,3,3,3),"Galloping")
     , galloping(horizonLength, Vec4<int>(0,2,7,9),Vec4<int>(4,4,4,4),"Galloping")
     , standing(horizonLength, Vec4<int>(0,0,0,0),Vec4<int>(10,10,10,10),"Standing")
-    // , trotRunning(horizonLength, Vec4<int>(0,5,5,0),Vec4<int>(3,3,3,3),"Trot Running")
     , trotRunning(horizonLength, Vec4<int>(0,5,5,0),Vec4<int>(4,4,4,4),"Trot Running")
     , walking(horizonLength, Vec4<int>(0,3,5,8), Vec4<int>(5,5,5,5), "Walking")
     , walking2(horizonLength, Vec4<int>(0,5,5,0), Vec4<int>(7,7,7,7), "Walking2")
@@ -89,12 +85,12 @@ void ConvexMPCLocomotion::_SetupCommand(
   _pitch_des = 0.;
 }
 
-template<>
+template <>
 void ConvexMPCLocomotion::run(Quadruped<float>& _quadruped,
                               LegController<float>& _legController,
                               StateEstimatorContainer<float>& _stateEstimator,
                               std::vector<double> gamepadCommand,
-                              int gaitType) {
+                              int gaitType, int /*robotMode*/) {
   bool omniMode = false;
 
   // Command Setup
@@ -136,10 +132,17 @@ void ConvexMPCLocomotion::run(Quadruped<float>& _quadruped,
     gait = &trotRunning;
   // else if(gaitNumber == 6)
   //   gait = &random2;
-  // else if(gaitNumber == 7)
-  //   gait = &random2;
+  else if(gaitNumber == 7)
+    gait = &galloping;
   else if(gaitNumber == 8)
     gait = &pacing;
+  else if (gaitNumber == 9)
+    gait = &trotting;
+  else if (gaitNumber == 10)
+    gait = &walking;
+  else if (gaitNumber == 11)
+    gait = &walking2;
+
   current_gait = gaitNumber;
 
   gait->setIterations(iterationsBetweenMPC, iterationCounter);

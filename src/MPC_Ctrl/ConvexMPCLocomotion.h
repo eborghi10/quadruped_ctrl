@@ -91,7 +91,7 @@ public:
            LegController<T> &_legController,
            StateEstimatorContainer<T> &_stateEstimator,
            std::vector<double> gamepadCommand,
-           int gaitType);
+           int gaitType, int robotMode);
 
   Vec3<float> pBody_des;
   Vec3<float> vBody_des;
