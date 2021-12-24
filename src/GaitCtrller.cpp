@@ -73,23 +73,9 @@ void GaitCtrller::SetRobotMode(int mode) {
 }
 
 void GaitCtrller::SetRobotVel(double* vel) {
-  if (abs(vel[0]) < 0.03) {
-    _gamepadCommand[0] = 0.0;
-  } else {
-    _gamepadCommand[0] = vel[0] * 1.0;
-  }
-
-  if (abs(vel[1]) < 0.03) {
-    _gamepadCommand[1] = 0.0;
-  } else {
-    _gamepadCommand[1] = vel[1] * 1.0;
-  }
-
-  if (abs(vel[2]) < 0.03) {
-    _gamepadCommand[2] = 0.0;
-  } else {
-  _gamepadCommand[2] = vel[2] * 1.0;
-  }
+  _gamepadCommand[0] = abs(vel[0]) < 0.03 ? 0.0 : vel[0] * 1.0;
+  _gamepadCommand[1] = abs(vel[1]) < 0.03 ? 0.0 : vel[1] * 1.0;
+  _gamepadCommand[2] = abs(vel[2]) < 0.03 ? 0.0 : vel[2] * 1.0;
 }
 
 void GaitCtrller::TorqueCalculator(double* imuData, double* motorData,
