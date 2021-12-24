@@ -90,7 +90,7 @@ void ConvexMPCLocomotion::run(Quadruped<float>& _quadruped,
                               LegController<float>& _legController,
                               StateEstimatorContainer<float>& _stateEstimator,
                               std::vector<double> gamepadCommand,
-                              int gaitType, int /*robotMode*/) {
+                              int gaitType, int /*robotMode*/, bool jump) {
   bool omniMode = false;
 
   // Command Setup
@@ -146,6 +146,21 @@ void ConvexMPCLocomotion::run(Quadruped<float>& _quadruped,
   current_gait = gaitNumber;
 
   gait->setIterations(iterationsBetweenMPC, iterationCounter);
+  jumping.setIterations(iterationsBetweenMPC, iterationCounter);
+
+  // check jump trigger
+  jump_state.trigger_pressed(jump_state.should_jump(jumping.getCurrentGaitPhase()), jump);
+
+  // check jump action
+  if (jump_state.should_jump(jumping.getCurrentGaitPhase()))
+  {
+    gait = &jumping;
+    _body_height = _body_height_jumping;
+  }
+  else
+  {
+    recompute_timing(default_iterations_between_mpc);
+  }
 
   if(_body_height < 0.02) {
     _body_height = 0.29;

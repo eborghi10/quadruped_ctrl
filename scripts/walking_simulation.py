@@ -21,6 +21,7 @@ from nav_msgs.msg import Odometry
 from geometry_msgs.msg import PoseWithCovarianceStamped, TransformStamped, Twist
 from quadruped_ctrl.srv import QuadrupedCmd, QuadrupedCmdResponse
 from sensor_msgs.msg import Image, Imu, JointState, PointCloud2, PointField
+from std_srvs.srv import SetBool, SetBoolResponse
 from tf_conversions import transformations
 from whole_body_state_msgs.msg import WholeBodyState
 from whole_body_state_msgs.msg import JointState as WBJointState
@@ -70,6 +71,7 @@ class WalkingSimulation(object):
         self.s0 = rospy.Service('gait_type', QuadrupedCmd, self.__callback_gait)
         self.s1 = rospy.Service('robot_mode', QuadrupedCmd, self.__callback_mode)
         self.s2 = rospy.Subscriber("cmd_vel", Twist, self.__callback_body_vel, buff_size=30)
+        self.s3 = rospy.Service('jump', SetBool, self.__callback_jump)
 
         self.robot_tf = tf2_ros.TransformBroadcaster()
 
@@ -439,6 +441,7 @@ class WalkingSimulation(object):
 
     def __convert_type(self, input):
         ctypes_map = {
+            bool: ctypes.c_bool,
             int: ctypes.c_int,
             float: ctypes.c_double,
             str: ctypes.c_char_p,
@@ -476,6 +479,10 @@ class WalkingSimulation(object):
     def __callback_body_vel(self, msg):
         vel = [msg.linear.x, msg.linear.y, msg.angular.x]
         self.cpp_gait_ctrller.set_robot_vel(self.__convert_type(vel))
+
+    def __callback_jump(self, req):
+        self.cpp_gait_ctrller.request_jump(self.__convert_type(req.data))
+        return SetBoolResponse(True, "Succeeded")
 
     def __fill_tf_message(self, parent_frame, child_frame, translation, rotation):
         t = TransformStamped()

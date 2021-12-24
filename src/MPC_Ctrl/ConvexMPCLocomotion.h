@@ -33,28 +33,26 @@ struct CMPC_Jump {
   int jump_wait_counter = 0;
 
   void debug(int seg) {
-    (void)seg;
-    //printf("[%d] pending %d running %d\n", seg, jump_pending, jump_in_progress);
+    printf("[%d] pending %d running %d\n", seg, jump_pending, jump_in_progress);
   }
 
   void trigger_pressed(int seg, bool trigger) {
-    (void)seg;
     if(!pressed && trigger) {
       if(!jump_pending && !jump_in_progress) {
         jump_pending = true;
-        //printf("jump pending @ %d\n", seg);
+        printf("jump pending @ %d\n", seg);
       }
     }
     pressed = trigger;
   }
 
   bool should_jump(int seg) {
-    debug(seg);
+    // debug(seg);
 
     if(jump_pending && seg == START_SEG) {
       jump_pending = false;
       jump_in_progress = true;
-      //printf("jump begin @ %d\n", seg);
+      printf("jump begin @ %d\n", seg);
       seen_end_count = 0;
       last_seg_seen = seg;
       return true;
@@ -66,7 +64,7 @@ struct CMPC_Jump {
         if(seen_end_count == END_COUNT) {
           seen_end_count = 0;
           jump_in_progress = false;
-          //printf("jump end @ %d\n", seg);
+          printf("jump end @ %d\n", seg);
           last_seg_seen = seg;
           return false;
         }
@@ -74,7 +72,6 @@ struct CMPC_Jump {
       last_seg_seen = seg;
       return true;
     }
-
     last_seg_seen = seg;
     return false;
   }
@@ -90,7 +87,7 @@ public:
 
   template<typename T>
   void run(Quadruped<T> &_quadruped, LegController<T> &_legController, StateEstimatorContainer<T> &_stateEstimator,
-           std::vector<double> gamepadCommand, int gaitType, int robotMode = 0);
+           std::vector<double> gamepadCommand, int gaitType, int robotMode = 0, bool jump = false);
 
   Vec3<float> pBody_des;
   Vec3<float> vBody_des;
@@ -158,10 +155,11 @@ private:
   CMPC_Result<float> result;
   float trajAll[12*36];
 
+  CMPC_Jump jump_state;
+
   vectorAligned<Vec12<double>> _sparseTrajectory;
 
   SparseCMPC _sparseCMPC;
-
 };
 
 

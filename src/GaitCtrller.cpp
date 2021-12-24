@@ -78,6 +78,15 @@ void GaitCtrller::SetRobotVel(double* vel) {
   _gamepadCommand[2] = abs(vel[2]) < 0.03 ? 0.0 : vel[2] * 1.0;
 }
 
+void GaitCtrller::RequestJump(bool request_jump) {
+  if (request_jump) {
+    _jump = true;
+  }
+  else {
+    _jump = false;
+  }
+}
+
 void GaitCtrller::TorqueCalculator(double* imuData, double* motorData,
                                    double* effort) {
   PreWork(imuData, motorData);
@@ -91,25 +100,32 @@ void GaitCtrller::TorqueCalculator(double* imuData, double* motorData,
   _desiredStateCommand->convertToStateCommands(_gamepadCommand);
 
   //safety check
-  if(!safetyChecker->checkSafeOrientation(*_stateEstimator)){
+  if (!safetyChecker->checkSafeOrientation(*_stateEstimator))
+  {
     _safetyCheck = false;
     std::cout << "broken: Orientation Safety Check FAIL" << std::endl;
 
-  }else if (!safetyChecker->checkPDesFoot(_quadruped, *_legController)) {
+  }
+  else if (!safetyChecker->checkPDesFoot(_quadruped, *_legController))
+  {
     _safetyCheck = false;
     std::cout << "broken: Foot Position Safety Check FAIL" << std::endl;
 
-  }else if (!safetyChecker->checkForceFeedForward(*_legController)) {
+  }
+  else if (!safetyChecker->checkForceFeedForward(*_legController))
+  {
     _safetyCheck = false;
     std::cout << "broken: Force FeedForward Safety Check FAIL" << std::endl;
 
-  }else if (!safetyChecker->checkJointLimit(*_legController)) {
+  }
+  else if (!safetyChecker->checkJointLimit(*_legController))
+  {
     _safetyCheck = false;
     std::cout << "broken: Joint Limit Safety Check FAIL" << std::endl;
   }
 
   convexMPC->run(_quadruped, *_legController, *_stateEstimator,
-                 _gamepadCommand, _gaitType, _robotMode);
+                 _gamepadCommand, _gaitType, _robotMode, _jump);
 
   _legController->updateCommand(&legcommand, ctrlParam);
 
