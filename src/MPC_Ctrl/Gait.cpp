@@ -20,6 +20,10 @@ OffsetDurationGait::OffsetDurationGait(int nSegment, Vec4<int> offsets, Vec4<int
   setGaitParam(nSegment, offsets, durations, name);
 }
 
+void MixedFrequncyGait::setGaitParam(int /*nSegment*/, Vec4<int> /*offset*/, Vec4<int> /*durations*/, const std::string& /*name*/) {
+  // TODO
+}
+
 void OffsetDurationGait::setGaitParam(int nSegment, Vec4<int> offsets, Vec4<int> durations, const std::string& name = "walk") {
 
   _offsets = offsets.array();

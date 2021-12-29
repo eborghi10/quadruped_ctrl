@@ -33,15 +33,15 @@ class OffsetDurationGait : public Gait {
 public:
   OffsetDurationGait(int nSegment, Vec4<int> offset, Vec4<int> durations, const std::string& name);
   ~OffsetDurationGait();
-  void setGaitParam(int nSegment, Vec4<int> offset, Vec4<int> durations, const std::string& name);
-  Vec4<float> getContactState();
-  Vec4<float> getSwingState();
-  int* getMpcTable();
-  void setIterations(int iterationsBetweenMPC, int currentIteration);
-  float getCurrentStanceTime(float dtMPC, int leg);
-  float getCurrentSwingTime(float dtMPC, int leg);
-  float getCurrentGaitPhase();
-  int getGaitHorizon();
+  void setGaitParam(int nSegment, Vec4<int> offset, Vec4<int> durations, const std::string& name) override;
+  Vec4<float> getContactState() override;
+  Vec4<float> getSwingState() override;
+  int* getMpcTable() override;
+  void setIterations(int iterationsBetweenMPC, int currentIteration) override;
+  float getCurrentStanceTime(float dtMPC, int leg) override;
+  float getCurrentSwingTime(float dtMPC, int leg) override;
+  float getCurrentGaitPhase() override;
+  int getGaitHorizon() override;
   void debugPrint();
 
 private:
@@ -63,14 +63,15 @@ class MixedFrequncyGait : public Gait {
 public:
   MixedFrequncyGait(int nSegment, Vec4<int> periods, float duty_cycle, const std::string& name);
   ~MixedFrequncyGait();
-  Vec4<float> getContactState();
-  Vec4<float> getSwingState();
-  int* getMpcTable();
-  void setIterations(int iterationsBetweenMPC, int currentIteration);
-  float getCurrentStanceTime(float dtMPC, int leg);
-  float getCurrentSwingTime(float dtMPC, int leg);
-  float getCurrentGaitPhase();
-  int getGaitHorizon();
+  void setGaitParam(int nSegment, Vec4<int> offset, Vec4<int> durations, const std::string& name);
+  Vec4<float> getContactState() override;
+  Vec4<float> getSwingState() override;
+  int* getMpcTable() override;
+  void setIterations(int iterationsBetweenMPC, int currentIteration) override;
+  float getCurrentStanceTime(float dtMPC, int leg) override;
+  float getCurrentSwingTime(float dtMPC, int leg) override;
+  float getCurrentGaitPhase() override;
+  int getGaitHorizon() override;
   void debugPrint();
 
 private:

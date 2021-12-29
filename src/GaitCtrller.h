@@ -9,14 +9,17 @@
 #include <string>
 
 #include "Controllers/ContactEstimator.h"
-#include "Controllers/ControlFSMData.h"
 #include "Controllers/DesiredStateCommand.h"
+#include "Controllers/MIT_UserParameters.h"
 #include "Controllers/OrientationEstimator.h"
 #include "Controllers/PositionVelocityEstimator.h"
 #include "Controllers/RobotLegState.h"
 #include "Controllers/StateEstimatorContainer.h"
 #include "Controllers/SafetyChecker.h"
 #include "Dynamics/MiniCheetah.h"
+#include "FSM_States/ControlFSMData.h"
+#include "FSM_States/FSM_State.h"
+#include "FSM_States/FSM_State_Locomotion.h"
 #include "MPC_Ctrl/ConvexMPCLocomotion.h"
 #include "Utilities/IMUTypes.h"
 #include "calculateTool.h"
@@ -43,21 +46,24 @@ class GaitCtrller {
   bool _safetyCheck = true;
   std::vector<double> _gamepadCommand;
   Vec4<float> ctrlParam;
-
+  MIT_UserParameters userParameters;
   Quadruped<float> _quadruped;
   FloatingBaseModel<float> _model;
   std::unique_ptr<ConvexMPCLocomotion> convexMPC;
-  std::unique_ptr<LegController<float>> _legController;
-  std::unique_ptr<StateEstimatorContainer<float>> _stateEstimator;
+  // LegController<float>* _legController;
+  // StateEstimatorContainer<float>* _stateEstimator;
   LegData _legdata;
   LegCommand legcommand;
-  ControlFSMData<float> control_data;
+  ControlFSMData<float> control_data;  // Contains all of the control related data
   VectorNavData _vectorNavData;
   std::unique_ptr<CheaterState<double>> cheaterState;
   StateEstimate<float> _stateEstimate;
   std::unique_ptr<RobotControlParameters> controlParameters;
-  std::unique_ptr<DesiredStateCommand<float>> _desiredStateCommand;
+  DesiredStateCommand<float>* _desiredStateCommand;
   std::unique_ptr<SafetyChecker<float>> safetyChecker;
+  std::unique_ptr<FSM_State<float>> currentState;  // current FSM state
+
+  void LoadParametersFromYAML(ControlParameters& parameters, const std::string& filename);
 };
 
 extern "C" {
