@@ -1,5 +1,8 @@
 <launch>
+    <arg name="vision" default="false" doc="True to use an RGB-D camera for 3D vision."/>
+
     <rosparam command="load" file="$(find quadruped_ctrl)/config/quadruped_ctrl_config.yaml"/>
+    <param name="simulation/camera" value="$(arg vision)" type="bool"/>
 
     <arg name="mini_cheetah_xacro" value="$(find quadruped_ctrl)/urdf/mini_cheetah/mini_cheetah.urdf.xacro"/>
     <param name="robot_description" command="$(find xacro)/xacro --inorder $(arg mini_cheetah_xacro)" />
@@ -12,5 +15,5 @@
           respawn="false" output="screen" required="true"
           launch-prefix="$(arg launch_prefix)"/>
 
-    <include file="$(find quadruped_ctrl)/launch/vision.launch"/>
+    <include file="$(find quadruped_ctrl)/launch/vision.launch" if="$(arg vision)"/>
 </launch>
