@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import concurrent
+import concurrent.futures
 import ctypes
 import cv2
 import math
@@ -14,11 +14,12 @@ import rospy
 import tf2_ros
 import threading
 
+from pybullet_utils import gazebo_world_parser
+
 from cv_bridge import CvBridge
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import PoseWithCovarianceStamped, TransformStamped, Twist
 from quadruped_ctrl.srv import QuadrupedCmd, QuadrupedCmdResponse
-from pybullet_utils import gazebo_world_parser
 from sensor_msgs.msg import Image, Imu, JointState, PointCloud2, PointField
 from tf_conversions import transformations
 from whole_body_state_msgs.msg import WholeBodyState
@@ -351,7 +352,7 @@ class WalkingSimulation(object):
         msg.point_step = 16
         msg.row_step = msg.point_step * points.shape[0]
         msg.is_dense = int(np.isfinite(points).all())
-        msg.data = pointsColor.tostring()
+        msg.data = pointsColor.tobytes()
         return msg
 
     # https://github.com/OCRTOC/OCRTOC_software_package/blob/master/pybullet_simulator/scripts/pybullet_env.py
