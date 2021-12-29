@@ -8,6 +8,8 @@
 #include <iomanip>
 #include <iostream>
 
+#include <ros/package.h>
+
 #include "Utilities/utilities.h"
 
 
@@ -40,7 +42,10 @@ std::string getCurrentTimeAndDate() {
  * Todo: do something better to keep track of where we are relative to the
  * config directory
  */
-std::string getConfigDirectoryPath() { return "../config/"; }
+std::string getConfigDirectoryPath() {
+  const std::string path = ros::package::getPath("quadruped_ctrl");
+  return path + "/config/";
+}
 
 /*!
  * Get the LCM URL with desired TTL.
