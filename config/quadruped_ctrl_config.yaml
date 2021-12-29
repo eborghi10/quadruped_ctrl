@@ -1,6 +1,5 @@
 simulation:
   terrain: "stairs"
-  camera: True
   lateralFriction: 1.0
   spinningFriction: 0.0065
   freq: 500.0
