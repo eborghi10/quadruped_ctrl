@@ -10,6 +10,7 @@ find_package(catkin REQUIRED
   COMPONENTS
     roscpp
     roslib
+    roslint
     rospy
     std_msgs
     message_generation
@@ -83,10 +84,7 @@ FILE(GLOB SRC
   src/Utilities/*.cpp
 )
 
-add_library(${PROJECT_NAME}
-  ${SRC}
-  src/GaitCtrller.cpp
-)
+add_library(${PROJECT_NAME} ${SRC})
 
 target_link_libraries(${PROJECT_NAME}
   ${catkin_LIBRARIES}
@@ -117,3 +115,9 @@ install(DIRECTORY
     worlds
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )
+
+# http://wiki.ros.org/roslint
+# 1. Add roslint_python
+# 2. Make build fail with roslint_add_test()
+# 3. Set custom options and apply some fixes automatically: http://wiki.ros.org/roslint#Tips
+# roslint_cpp(${SRC})
