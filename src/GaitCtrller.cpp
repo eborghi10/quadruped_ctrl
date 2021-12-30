@@ -99,8 +99,9 @@ void GaitCtrller::PreWork(double* imuData, double* motorData) {
 }
 
 void GaitCtrller::SetGaitType(int gaitType) {
-  _gaitType = gaitType;
-  std::cout << "set gait type to: " << _gaitType << std::endl;
+  control_data.userParameters->gait_type = gaitType;
+  control_data._gaitScheduler->modifyGait();
+  std::cout << "set gait type to: " << gaitType << std::endl;
 }
 
 void GaitCtrller::SetRobotMode(int mode) {

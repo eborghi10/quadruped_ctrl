@@ -41,7 +41,6 @@ class GaitCtrller {
   void TorqueCalculator(double* imuData, double* motorData, double* effort);
 
  private:
-  int _gaitType = 0;
   int _robotMode = 0;
   bool _safetyCheck = true;
   std::vector<double> _gamepadCommand;

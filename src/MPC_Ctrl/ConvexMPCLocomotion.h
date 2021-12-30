@@ -110,7 +110,7 @@ public:
 private:
   void _SetupCommand(ControlFSMData<float> & data);
 
-  float _yaw_turn_rate;
+  float _yaw_turn_rate = 0.;
   float _yaw_des;
 
   float _roll_des;

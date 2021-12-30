@@ -221,7 +221,7 @@ void ConvexMPCLocomotion::run(ControlFSMData<float>& data) {
     for(int i = 0; i < 4; i++)
     {
 
-      footSwingTrajectories[i].setHeight(0.05);
+      footSwingTrajectories[i].setHeight(0.06);
       footSwingTrajectories[i].setInitialPosition(pFoot[i]);
       footSwingTrajectories[i].setFinalPosition(pFoot[i]);
 
@@ -235,7 +235,6 @@ void ConvexMPCLocomotion::run(ControlFSMData<float>& data) {
 
   float side_sign[4] = {-1, 1, -1, 1};
   float interleave_y[4] = {-0.08, 0.08, 0.02, -0.02};
-  //float interleave_gain = -0.13;
   float interleave_gain = -0.2;
   //float v_abs = std::fabs(seResult.vBody[0]);
   float v_abs = std::fabs(v_des_robot[0]);
@@ -286,8 +285,8 @@ void ConvexMPCLocomotion::run(ControlFSMData<float>& data) {
     pfy_rel = fminf(fmaxf(pfy_rel, -p_rel_max), p_rel_max);
     Pf[0] +=  pfx_rel;
     Pf[1] +=  pfy_rel;
-    Pf[2] = -0.003;
-    //Pf[2] = 0.0;
+    // Pf[2] = -0.003;
+    Pf[2] = 0.0;
     footSwingTrajectories[i].setFinalPosition(Pf);
 
   }
@@ -298,13 +297,13 @@ void ConvexMPCLocomotion::run(ControlFSMData<float>& data) {
   // load LCM leg swing gains
   Kp << 700, 0, 0,
      0, 700, 0,
-     0, 0, 150;
+     0, 0, 200;
   Kp_stance = 0*Kp;
 
 
-  Kd << 7, 0, 0,
-     0, 7, 0,
-     0, 0, 7;
+  Kd << 10, 0, 0,
+     0, 10, 0,
+     0, 0, 10;
   Kd_stance = Kd;
   // gait
   Vec4<float> contactStates = gait->getContactState();
@@ -571,7 +570,7 @@ void ConvexMPCLocomotion::solveDenseMPC(int *mpcTable, ControlFSMData<float> &da
 
   //float Q[12] = {0.25, 0.25, 10, 2, 2, 20, 0, 0, 0.3, 0.2, 0.2, 0.2};
 
-  float Q[12] = {0.25, 0.25, 10, 2, 2, 50, 0, 0, 0.3, 0.2, 0.2, 0.1};
+  float Q[12] = {2.5, 2.5, 10, 50, 50, 100, 0, 0, 0.5, 0.2, 0.2, 0.1};
 
   //float Q[12] = {0.25, 0.25, 10, 2, 2, 40, 0, 0, 0.3, 0.2, 0.2, 0.2};
   float yaw = seResult.rpy[2];
@@ -692,10 +691,9 @@ void ConvexMPCLocomotion::initSparseMPC() {
 
   Vec12<double> weights;
   weights << 0.25, 0.25, 10, 2, 2, 20, 0, 0, 0.3, 0.2, 0.2, 0.2;
-  //weights << 0,0,0,1,1,10,0,0,0,0.2,0.2,0;
 
   _sparseCMPC.setRobotParameters(baseInertia, mass, maxForce);
-  _sparseCMPC.setFriction(0.4);
+  _sparseCMPC.setFriction(1.0);
   _sparseCMPC.setWeights(weights, 4e-5);
   _sparseCMPC.setDtTrajectory(dtTraj);
 
