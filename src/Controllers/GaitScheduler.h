@@ -15,7 +15,7 @@
 /**
  * Enumerated gait types. Preplanned gaits are defined.
  */
-enum class GaitType {
+enum class GaitType : u16 {
   STAND,
   STAND_CYCLE,
   STATIC_WALK,
