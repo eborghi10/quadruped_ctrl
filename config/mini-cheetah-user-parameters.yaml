@@ -80,7 +80,13 @@ des_dtheta_max    : [0,0,3]
 gait_type             : 4
 gait_period_time      : 0.5
 gait_switching_phase  : 0.5
-gait_override         : 4  # Use NaturalGaitModification from FSM_State
+# gait_override
+# 0. Use default gait and default settings from Control code
+# 1. Use chosen gait with default settings
+# 2. Use chosen gait and chosen settings
+# 3. Use NaturalGaitModification from FSM_State
+# 4. Use NaturalGaitModification from FSM_State
+gait_override         : 1
 gait_max_leg_angle    : 15
 gait_max_stance_time  : 0.25
 gait_min_stance_time  : 0.1
