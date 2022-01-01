@@ -33,7 +33,6 @@ class LocomotionCtrl: public WBC_Ctrl<T>{
     virtual void _ContactTaskUpdateTEST(void * input, ControlFSMData<T> & data);
     void _ParameterSetup(const MIT_UserParameters* param);
     void _CleanUp();
-    virtual void _LCM_PublishData();
 
     LocomotionCtrlData<T>* _input_data;
 

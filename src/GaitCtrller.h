@@ -47,10 +47,6 @@ class GaitCtrller {
   Vec4<float> ctrlParam;
   MIT_UserParameters userParameters;
   Quadruped<float> _quadruped;
-  FloatingBaseModel<float> _model;
-  std::unique_ptr<ConvexMPCLocomotion> convexMPC;
-  // LegController<float>* _legController;
-  // StateEstimatorContainer<float>* _stateEstimator;
   LegData _legdata;
   LegCommand legcommand;
   ControlFSMData<float> control_data;  // Contains all of the control related data

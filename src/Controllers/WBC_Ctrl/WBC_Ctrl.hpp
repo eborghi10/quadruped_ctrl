@@ -30,7 +30,6 @@ class WBC_Ctrl{
       (void)input;
       (void)data;
     }
-    // virtual void _LCM_PublishData(){}
     void _UpdateModel(const StateEstimate<T> & state_est, const LegControllerData<T> * leg_data);
     void _UpdateLegCMD(ControlFSMData<T> & data);
     void _ComputeWBC();

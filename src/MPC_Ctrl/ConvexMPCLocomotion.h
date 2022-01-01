@@ -34,7 +34,7 @@ struct CMPC_Jump {
 
   void debug(int seg) {
     (void)seg;
-    //printf("[%d] pending %d running %d\n", seg, jump_pending, jump_in_progress);
+    // printf("[%d] pending %d running %d\n", seg, jump_pending, jump_in_progress);
   }
 
   void trigger_pressed(int seg, bool trigger) {
@@ -120,7 +120,6 @@ private:
   float _y_vel_des = 0.;
 
   // High speed running
-  //float _body_height = 0.34;
   float _body_height = 0.29;
 
   float _body_height_running = 0.29;
@@ -158,7 +157,6 @@ private:
   CMPC_Result<float> result;
   float trajAll[12*36];
 
-  // MIT_UserParameters* _parameters = nullptr;
   CMPC_Jump jump_state;
 
   vectorAligned<Vec12<double>> _sparseTrajectory;

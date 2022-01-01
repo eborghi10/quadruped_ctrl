@@ -92,9 +92,6 @@ void WBC_Ctrl<T>::run(void* input, ControlFSMData<T> & data){
 
   // Update Leg Command
   _UpdateLegCMD(data);
-
-  // LCM publish
-  // _LCM_PublishData();
 }
 
 

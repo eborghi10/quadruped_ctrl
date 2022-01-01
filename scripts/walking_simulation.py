@@ -91,7 +91,7 @@ class WalkingSimulation(object):
         p.resetSimulation()
         p.setTimeStep(1.0/self.freq)
         p.setGravity(0, 0, -9.81)
-        # self.reset = p.addUserDebugParameter("reset", 1, 0, 0)
+        self.reset = p.addUserDebugParameter("reset", 1, 0, 0)
         # self.low_energy_mode = p.addUserDebugParameter("low_energy_mode", 1, 0, 0)
         # self.high_performance_mode = p.addUserDebugParameter("high_performance_mode", 1, 0, 0)
         p.resetDebugVisualizerCamera(0.2, 45, -30, [1, -1, 1])
@@ -214,15 +214,15 @@ class WalkingSimulation(object):
 
     def run(self):
         rate = rospy.Rate(self.freq)  # Hz
-        # reset_flag = p.readUserDebugParameter(self.reset)
+        reset_flag = p.readUserDebugParameter(self.reset)
         # low_energy_flag = p.readUserDebugParameter(self.low_energy_mode)
         # high_performance_flag = p.readUserDebugParameter(self.high_performance_mode)
         while not rospy.is_shutdown():
             # check reset button state
-            # if(reset_flag < p.readUserDebugParameter(self.reset)):
-            #     reset_flag = p.readUserDebugParameter(self.reset)
-            #     rospy.logwarn("reset the robot")
-            #     self.__reset_robot()
+            if(reset_flag < p.readUserDebugParameter(self.reset)):
+                reset_flag = p.readUserDebugParameter(self.reset)
+                rospy.logwarn("reset the robot")
+                self.__reset_robot()
             # if(low_energy_flag < p.readUserDebugParameter(self.low_energy_mode)):
             #     low_energy_flag = p.readUserDebugParameter(self.low_energy_mode)
             #     rospy.loginfo("set robot to low energy mode")
