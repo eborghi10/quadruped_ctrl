@@ -134,14 +134,14 @@ void LegController<T>::updateCommand(LegCommand* legCommand,
     computeLegIK(_quadruped, commands[leg].pDes, &(commands[leg].qDes), leg);
     if (leg == 1 || leg == 3) {
       legCommand->tau_abad_ff[leg] =
-          1*crtlParam(2) * (0.0 - datas[leg].q(0)) -
-          1*crtlParam(3) * datas[leg].qd(0) + legTorque(0);
+          crtlParam(2) * (0.0 - datas[leg].q(0)) -
+          crtlParam(3) * datas[leg].qd(0) + legTorque(0);
       legCommand->tau_hip_ff[leg] =
-          1*crtlParam(2) * (0.0 - datas[leg].q(1)) -
-          1*crtlParam(3) * datas[leg].qd(1) + legTorque(1);
+          crtlParam(2) * (0.0 - datas[leg].q(1)) -
+          crtlParam(3) * datas[leg].qd(1) + legTorque(1);
       legCommand->tau_knee_ff[leg] =
-          1*crtlParam(2) * (0.0 - datas[leg].q(2)) -
-          1*crtlParam(3) * datas[leg].qd(2) + legTorque(2);
+          crtlParam(2) * (0.0 - datas[leg].q(2)) -
+          crtlParam(3) * datas[leg].qd(2) + legTorque(2);
     } else {
       legCommand->tau_abad_ff[leg] =
           crtlParam(2) * (0.0 - datas[leg].q(0)) -
@@ -153,23 +153,6 @@ void LegController<T>::updateCommand(LegCommand* legCommand,
           crtlParam(2) * (0.0 - datas[leg].q(2)) -
           crtlParam(3) * datas[leg].qd(2) + legTorque(2);
     }
-
-    // std::ofstream fp;
-    // fp.open("position.txt", std::ofstream::app);
-    // if(!fp){
-    //   std::ofstream fpout("position.txt");
-    //   fpout << commands[0].pDes(0) << "," << commands[0].pDes(1) << "," <<
-    //   commands[0].pDes(2) << "," << commands[1].pDes(0) << "," <<
-    //   commands[1].pDes(1) << "," << commands[1].pDes(2) << ","; fp.close();
-    //   fpout.close();
-    // }else{
-    //   fp << commands[0].pDes(0) << "," << commands[0].pDes(1) << "," <<
-    //   commands[0].pDes(2) << "," << commands[1].pDes(0) << "," <<
-    //   commands[1].pDes(1) << "," << commands[1].pDes(2) << std::endl;
-    //   fp.close();
-    // }
-
-    // legCommand->flags[leg] = _legsEnabled ? 1 : 0;
   }
 
   flags = flags + 1;

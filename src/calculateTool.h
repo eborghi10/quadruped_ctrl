@@ -30,6 +30,7 @@ class CalculateTool{
     bool firstOrnot;
     double lastTime;
     double lastErr;
+    double errSum;
 };
 
 #endif

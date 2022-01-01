@@ -258,7 +258,10 @@ class ControlParameter {
                                _name + " as a double!");
     }
     _set = true;
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
     *_value.d = d;
+    #pragma GCC diagnostic pop
   }
 
 
@@ -272,7 +275,10 @@ class ControlParameter {
                                _name + " as a float!");
     }
     _set = true;
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
     *_value.f = f;
+    #pragma GCC diagnostic pop
   }
 
   /*!
@@ -285,7 +291,10 @@ class ControlParameter {
                                _name + " as an integer!");
     }
     _set = true;
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
     *_value.i = i;
+    #pragma GCC diagnostic pop
   }
 
   /*!

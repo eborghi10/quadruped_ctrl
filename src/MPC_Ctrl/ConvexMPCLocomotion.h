@@ -1,17 +1,15 @@
-#ifndef _CONVEXMPCLOCOMOTION_H
-#define _CONVEXMPCLOCOMOTION_H
+#ifndef CHEETAH_SOFTWARE_CONVEXMPCLOCOMOTION_H
+#define CHEETAH_SOFTWARE_CONVEXMPCLOCOMOTION_H
 
-#include "Controllers/FootSwingTrajectory.h"
-#include "Controllers/ControlFSMData.h"
-#include "SparseCMPC.h"
-#include "Utilities/cppTypes.h"
-#include "Gait.h"
-#include <fstream>
-#include <sys/time.h>
-
-#include <algorithm>
 #include <cstdio>
-#include <vector>
+
+#include <Controllers/FootSwingTrajectory.h>
+#include <FSM_States/ControlFSMData.h>
+#include <MPC_Ctrl/SparseCMPC.h>
+#include <Utilities/cppTypes.h>
+
+#include "Gait.h"
+
 
 using Eigen::Array4f;
 using Eigen::Array4i;
@@ -36,7 +34,7 @@ struct CMPC_Jump {
 
   void debug(int seg) {
     (void)seg;
-    //printf("[%d] pending %d running %d\n", seg, jump_pending, jump_in_progress);
+    // printf("[%d] pending %d running %d\n", seg, jump_pending, jump_in_progress);
   }
 
   void trigger_pressed(int seg, bool trigger) {
@@ -91,9 +89,7 @@ public:
   void initialize();
 
   template<typename T>
-  void run(Quadruped<T> &_quadruped, LegController<T> &_legController, StateEstimatorContainer<float> &_stateEstimator,
-          DesiredStateCommand<T> &_desiredStateCommand, std::vector<double> gamepadCommand, int gaitType, int robotMode = 0);
-  // void _SetupCommand(StateEstimatorContainer<float> &_stateEstimator, std::vector<double> gamepadCommand);
+  void run(ControlFSMData<T>& data);
   bool currently_jumping = false;
 
   Vec3<float> pBody_des;
@@ -112,11 +108,10 @@ public:
   Vec4<float> contact_state;
 
 private:
-  void _SetupCommand(StateEstimatorContainer<float> &_stateEstimator, std::vector<double> gamepadCommand);
+  void _SetupCommand(ControlFSMData<float> & data);
 
   float _yaw_turn_rate = 0.;
   float _yaw_des;
-  float _yaw_des_true = 0.0;
 
   float _roll_des;
   float _pitch_des;
@@ -125,31 +120,30 @@ private:
   float _y_vel_des = 0.;
 
   // High speed running
-  //float _body_height = 0.34;
   float _body_height = 0.29;
 
   float _body_height_running = 0.29;
   float _body_height_jumping = 0.36;
 
   void recompute_timing(int iterations_per_mpc);
-  void updateMPCIfNeeded(int* mpcTable, StateEstimatorContainer<float> &_stateEstimator, bool omniMode);
-  void solveDenseMPC(int *mpcTable, StateEstimatorContainer<float> &_stateEstimator);
-  void solveSparseMPC(int *mpcTable, StateEstimatorContainer<float> &_stateEstimator);
+  void updateMPCIfNeeded(int* mpcTable, ControlFSMData<float>& data, bool omniMode);
+  void solveDenseMPC(int *mpcTable, ControlFSMData<float> &data);
+  void solveSparseMPC(int *mpcTable, ControlFSMData<float> &data);
   void initSparseMPC();
-  int iterationsBetweenMPC;  //15
-  int horizonLength;    //10
+  int iterationsBetweenMPC;
+  int horizonLength;
   int default_iterations_between_mpc;
-  float dt;  //0.002
-  float dtMPC; //0.03
-  int iterationCounter = 0;  //
+  float dt;
+  float dtMPC;
+  int iterationCounter = 0;
   Vec3<float> f_ff[4];
   Vec4<float> swingTimes;
   FootSwingTrajectory<float> footSwingTrajectories[4];
-  OffsetDurationGait trotting, bounding, pronking, jumping, galloping, standing, trotRunning, walking, walking2, pacing, aio;
-  // MixedFrequncyGait random, random2;
-  Mat3<float> Kp, Kd, Kp_stance, Kd_stance, Kp1;
+  OffsetDurationGait trotting, bounding, pronking, jumping, galloping, standing, trotRunning, walking, walking2, pacing;
+  MixedFrequncyGait random, random2;
+  Mat3<float> Kp, Kd, Kp_stance, Kd_stance;
   bool firstRun = true;
-  bool firstSwing[4];  //true
+  bool firstSwing[4];
   float swingTimeRemaining[4];
   float stand_traj[6];
   int current_gait;
@@ -161,8 +155,7 @@ private:
   float x_comp_integral = 0;
   Vec3<float> pFoot[4];
   CMPC_Result<float> result;
-  float trajAll[20*36];
-  float myflags = 0;
+  float trajAll[12*36];
 
   CMPC_Jump jump_state;
 

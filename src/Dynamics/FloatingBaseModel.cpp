@@ -20,7 +20,7 @@
 #include <string>
 #include <vector>
 
-#include "Dynamics/FloatingBaseModel.h"
+#include "FloatingBaseModel.h"
 #include "Utilities/orientation_tools.h"
 #include "Utilities/Utilities_print.h"
 
@@ -33,7 +33,7 @@ using namespace std;
  * that direction and computes the resultant qdd
  * @param gc_index index of the contact
  * @param force_ics_at_contact unit test force expressed in inertial coordinates
- * @params dstate - Output paramter of resulting accelerations
+ * @params dstate_out - Output parameter of resulting accelerations
  * @return the 1x1 inverse contact inertia J H^{-1} J^T
  */
 template <typename T>

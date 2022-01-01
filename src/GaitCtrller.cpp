@@ -1,35 +1,70 @@
 #include "GaitCtrller.h"
 
+#include "Dynamics/MiniCheetah.h"
+
+
 GaitCtrller::GaitCtrller(double freq, double* PIDParam)
-  : _quadruped{ buildMiniCheetah<float>() }
-  , _model{ _quadruped.buildModel() }
-  , convexMPC{ std::make_unique<ConvexMPCLocomotion>(1.0 / freq, 13) }
-  , _legController{ std::make_unique<LegController<float>>(_quadruped) }
-  , _stateEstimator{ std::make_unique<StateEstimatorContainer<float>>(
-        cheaterState.get(), &_vectorNavData, _legController->datas, &_stateEstimate,
-        controlParameters.get()) }
-  , _desiredStateCommand{ std::make_unique<DesiredStateCommand<float>>(1.0 / freq) }
-  , safetyChecker{ std::make_unique<SafetyChecker<float>>() }
+    : controlParameters{ new RobotControlParameters() }
 {
   for (int i = 0; i < 4; i++) {
     ctrlParam(i) = PIDParam[i];
   }
   _gamepadCommand.resize(4);
 
-  // reset the state estimator
-  _stateEstimator->removeAllEstimators();
-  _stateEstimator->addEstimator<ContactEstimator<float>>();
+  LoadParametersFromYAML(userParameters, "mini-cheetah-user-parameters.yaml");
+  LoadParametersFromYAML(*controlParameters, "mini-cheetah-control-parameters.yaml");
+
+  // Build the appropriate Quadruped object
+  _quadruped = buildMiniCheetah<float>();
+  control_data._quadruped = &_quadruped;
+
+  // Always initialize the leg controller and state entimator
+  control_data._legController = new LegController<float>(_quadruped);
+  control_data._stateEstimator = new StateEstimatorContainer<float>(
+      cheaterState.get(), &_vectorNavData, control_data._legController->datas, &_stateEstimate,
+      controlParameters.get());
+
+  // Initialize estimator
+  control_data._stateEstimator->removeAllEstimators();
+  control_data._stateEstimator->addEstimator<ContactEstimator<float>>();
   Vec4<float> contactDefault;
   contactDefault << 0.5, 0.5, 0.5, 0.5;
-  _stateEstimator->setContactPhase(contactDefault);
+  control_data._stateEstimator->setContactPhase(contactDefault);
+  control_data._stateEstimator->addEstimator<VectorNavOrientationEstimator<float>>();
+  control_data._stateEstimator->addEstimator<LinearKFPositionVelocityEstimator<float>>();
 
-  _stateEstimator->addEstimator<VectorNavOrientationEstimator<float>>();
-  _stateEstimator->addEstimator<LinearKFPositionVelocityEstimator<float>>();
+  // Initialize the DesiredStateCommand object
+  _desiredStateCommand = new DesiredStateCommand<float>(1.0 / freq);
+  control_data._desiredStateCommand = _desiredStateCommand;
+
+  // Initialize a new GaitScheduler object
+  control_data._gaitScheduler = new GaitScheduler<float>(&userParameters, 1.0 / freq);
+  control_data.controlParameters = controlParameters.get();
+  control_data.userParameters = &userParameters;
+  currentState = std::make_unique<FSM_State_Locomotion<float>>(&control_data);
+
+  safetyChecker = std::make_unique<SafetyChecker<float>>();
+
+  currentState->onEnter();
 
   std::cout << "finish init controller" << std::endl;
 }
 
 GaitCtrller::~GaitCtrller() {}
+
+void GaitCtrller::LoadParametersFromYAML(ControlParameters& parameters, const std::string& filename) {
+  printf("[SimControlPanel] Init simulator parameters...\n");
+  parameters.initializeFromYamlFile(getConfigDirectoryPath() + filename);
+  if (!parameters.isFullyInitialized()) {
+    printf(
+        "[ERROR] Simulator parameters are not fully initialized. You forgot: "
+        "\n%s\n",
+        parameters.generateUnitializedList().c_str());
+    throw std::runtime_error("simulator not initialized");
+  } else {
+    printf("\tsim parameters are all good\n");
+  }
+}
 
 void GaitCtrller::SetIMUData(double* imuData) {
   _vectorNavData.accelerometer(0, 0) = imuData[0];
@@ -58,13 +93,16 @@ void GaitCtrller::SetLegData(double* motorData) {
 void GaitCtrller::PreWork(double* imuData, double* motorData) {
   SetIMUData(imuData);
   SetLegData(motorData);
-  _stateEstimator->run();
-  _legController->updateData(&_legdata);
+  // Run the state estimator step
+  control_data._stateEstimator->run();
+  control_data._legController->updateData(&_legdata);
 }
 
 void GaitCtrller::SetGaitType(int gaitType) {
-  _gaitType = gaitType;
-  std::cout << "set gait type to: " << _gaitType << std::endl;
+  control_data.userParameters->gait_type = gaitType;
+  control_data.userParameters->cmpc_gait = gaitType;
+  std::cout << "set gait type to: " << gaitType << std::endl;
+  control_data._gaitScheduler->modifyGait();
 }
 
 void GaitCtrller::SetRobotMode(int mode) {
@@ -73,23 +111,9 @@ void GaitCtrller::SetRobotMode(int mode) {
 }
 
 void GaitCtrller::SetRobotVel(double* vel) {
-  if (abs(vel[0]) < 0.03) {
-    _gamepadCommand[0] = 0.0;
-  } else {
-    _gamepadCommand[0] = vel[0] * 1.0;
-  }
-
-  if (abs(vel[1]) < 0.03) {
-    _gamepadCommand[1] = 0.0;
-  } else {
-    _gamepadCommand[1] = vel[1] * 1.0;
-  }
-
-  if (abs(vel[2]) < 0.03) {
-    _gamepadCommand[2] = 0.0;
-  } else {
-  _gamepadCommand[2] = vel[2] * 1.0;
-  }
+  _gamepadCommand[0] = abs(vel[0]) < 0.03 ? 0.0 : vel[0];
+  _gamepadCommand[1] = abs(vel[1]) < 0.03 ? 0.0 : vel[1];
+  _gamepadCommand[2] = abs(vel[2]) < 0.03 ? 0.0 : vel[2];
 }
 
 void GaitCtrller::TorqueCalculator(double* imuData, double* motorData,
@@ -97,35 +121,39 @@ void GaitCtrller::TorqueCalculator(double* imuData, double* motorData,
   PreWork(imuData, motorData);
 
   // Setup the leg controller for a new iteration
-  _legController->zeroCommand();
-  _legController->setEnabled(true);
-  _legController->setMaxTorqueCheetah3(208.5);
+  control_data._legController->zeroCommand();
+  control_data._legController->setEnabled(true);
+  control_data._legController->setMaxTorqueCheetah3(208.5);
+
+  // Find the current gait schedule
+  control_data._gaitScheduler->step();
 
   // Find the desired state trajectory
   _desiredStateCommand->convertToStateCommands(_gamepadCommand);
 
   //safety check
-  if(!safetyChecker->checkSafeOrientation(*_stateEstimator)){
+  if(!safetyChecker->checkSafeOrientation(*control_data._stateEstimator)){
     _safetyCheck = false;
     std::cout << "broken: Orientation Safety Check FAIL" << std::endl;
 
-  }else if (!safetyChecker->checkPDesFoot(_quadruped, *_legController)) {
+  }else if (!safetyChecker->checkPDesFoot(_quadruped, *control_data._legController)) {
     _safetyCheck = false;
     std::cout << "broken: Foot Position Safety Check FAIL" << std::endl;
 
-  }else if (!safetyChecker->checkForceFeedForward(*_legController)) {
+  }else if (!safetyChecker->checkForceFeedForward(*control_data._legController)) {
     _safetyCheck = false;
     std::cout << "broken: Force FeedForward Safety Check FAIL" << std::endl;
 
-  }else if (!safetyChecker->checkJointLimit(*_legController)) {
+  }else if (!safetyChecker->checkJointLimit(*control_data._legController)) {
     _safetyCheck = false;
     std::cout << "broken: Joint Limit Safety Check FAIL" << std::endl;
   }
 
-  convexMPC->run(_quadruped, *_legController, *_stateEstimator,
-                 *_desiredStateCommand, _gamepadCommand, _gaitType, _robotMode);
+  // Run the Control FSM code
+  // _controlFSM->runFSM();
+  currentState->run();
 
-  _legController->updateCommand(&legcommand, ctrlParam);
+  control_data._legController->updateCommand(&legcommand, ctrlParam);
 
   if(_safetyCheck) {
     for (int i = 0; i < 4; i++) {
